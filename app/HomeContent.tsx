@@ -16,7 +16,7 @@ export default function HomeContent() {
     phone: '',
   });
 
-  // Get referral from URL
+  // Get referral
   useEffect(() => {
     const referral = searchParams.get('ref');
     if (referral) setRef(referral);
@@ -35,43 +35,74 @@ export default function HomeContent() {
     fetchCount();
   }, []);
 
-  // Handle input change
+  // Handle input
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Handle form submit
+  // ✅ FIXED HANDLE SUBMIT
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const referralCode =
-      formData.name.slice(0, 3).toUpperCase() +
-      Math.floor(Math.random() * 10000);
+    try {
+      // Generate referral code
+      const referralCode =
+        formData.name.slice(0, 3).toUpperCase() +
+        Math.floor(Math.random() * 10000);
 
-    const { error } = await supabase.from('waitlist_users').insert([
-      {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        referral_code: referralCode,
-        referred_by: ref || null,
-        spin_points: 0,
-        balance_naira: 0,
-      },
-    ]);
+      // Check if user exists
+      const { data: existingUser, error: fetchError } = await supabase
+        .from('waitlist_users')
+        .select('*')
+        .eq('email', formData.email)
+        .maybeSingle();
 
-    if (!error) {
+      if (fetchError) {
+        console.error(fetchError);
+        alert(fetchError.message);
+        return;
+      }
+
+      // Prevent duplicate
+      if (existingUser) {
+        alert("⚠️ You already joined. Please login.");
+        window.location.href = '/auth';
+        return;
+      }
+
+      // Insert user
+      const { error: insertError } = await supabase
+        .from('waitlist_users')
+        .insert([
+          {
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            referral_code: referralCode,
+            referred_by: ref || null,
+            spin_points: 0,
+            balance_naira: 0,
+          },
+        ]);
+
+      if (insertError) {
+        console.error(insertError);
+        alert(insertError.message);
+        return;
+      }
+
+      // Redirect
       window.location.href = `/success?ref=${referralCode}`;
-    } else {
-      alert('❌ Error occurred. Try again.');
-      console.error(error);
+
+    } catch (err) {
+      console.error(err);
+      alert("❌ Something went wrong");
     }
   };
 
   return (
     <main className="min-h-screen bg-black text-white">
 
-      {/* HERO SECTION */}
       <section className="flex flex-col items-center justify-center text-center px-6 py-20">
 
         <h1 className="text-4xl md:text-6xl font-bold mb-4">
@@ -83,7 +114,7 @@ export default function HomeContent() {
           🔥 Join {userCount}+ users already earning on SpinEarn
         </p>
 
-        <p className="text-lg md:text-xl text-gray-300 max-w-2xl mb-6">
+        <p className="text-lg text-gray-300 max-w-2xl mb-6">
           SpinEarn™ by Spinbyte is a fintech-powered platform where you earn from referrals,
           content, and engagement.
         </p>
@@ -98,7 +129,7 @@ export default function HomeContent() {
             value={formData.name}
             onChange={handleChange}
             required
-            className="w-full mb-3 p-3 rounded bg-gray-900 border border-gray-700"
+            className="w-full mb-3 p-3 rounded bg-gray-900"
           />
 
           <input
@@ -108,7 +139,7 @@ export default function HomeContent() {
             value={formData.email}
             onChange={handleChange}
             required
-            className="w-full mb-3 p-3 rounded bg-gray-900 border border-gray-700"
+            className="w-full mb-3 p-3 rounded bg-gray-900"
           />
 
           <input
@@ -118,15 +149,16 @@ export default function HomeContent() {
             value={formData.phone}
             onChange={handleChange}
             required
-            className="w-full mb-3 p-3 rounded bg-gray-900 border border-gray-700"
+            className="w-full mb-3 p-3 rounded bg-gray-900"
           />
 
           <button
             type="submit"
-            className="w-full bg-green-500 hover:bg-green-600 text-black font-bold py-3 rounded"
+            className="w-full bg-green-500 py-3 rounded font-bold"
           >
             Join Waitlist 🚀
           </button>
+
         </form>
 
         <p className="text-sm text-gray-400 mt-4">
