@@ -6,24 +6,42 @@ import { supabase } from '../lib/supabase';
 
 export default function HomeContent() {
   const searchParams = useSearchParams();
-  const [ref, setRef] = useState("");
+
+  const [ref, setRef] = useState('');
+  const [userCount, setUserCount] = useState(0);
 
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: ""
+    name: '',
+    email: '',
+    phone: '',
   });
 
+  // Get referral from URL
   useEffect(() => {
-    const referral = searchParams.get("ref");
+    const referral = searchParams.get('ref');
     if (referral) setRef(referral);
   }, [searchParams]);
 
-  const handleChange = (e: any) => {
+  // Fetch total users
+  useEffect(() => {
+    const fetchCount = async () => {
+      const { count } = await supabase
+        .from('waitlist_users')
+        .select('*', { count: 'exact', head: true });
+
+      setUserCount(count || 0);
+    };
+
+    fetchCount();
+  }, []);
+
+  // Handle input change
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e: any) => {
+  // Handle form submit
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const referralCode =
@@ -37,30 +55,42 @@ export default function HomeContent() {
         phone: formData.phone,
         referral_code: referralCode,
         referred_by: ref || null,
+        spin_points: 0,
+        balance_naira: 0,
       },
     ]);
 
     if (!error) {
       window.location.href = `/success?ref=${referralCode}`;
     } else {
-      alert("❌ Error occurred. Try again.");
+      alert('❌ Error occurred. Try again.');
       console.error(error);
     }
   };
 
   return (
     <main className="min-h-screen bg-black text-white">
+
+      {/* HERO SECTION */}
       <section className="flex flex-col items-center justify-center text-center px-6 py-20">
+
         <h1 className="text-4xl md:text-6xl font-bold mb-4">
           💰 Turn Your Time Online Into Daily Income
         </h1>
+
+        {/* USER COUNT */}
+        <p className="text-green-400 font-semibold mb-4">
+          🔥 Join {userCount}+ users already earning on SpinEarn
+        </p>
 
         <p className="text-lg md:text-xl text-gray-300 max-w-2xl mb-6">
           SpinEarn™ by Spinbyte is a fintech-powered platform where you earn from referrals,
           content, and engagement.
         </p>
 
+        {/* FORM */}
         <form onSubmit={handleSubmit} className="w-full max-w-md">
+
           <input
             type="text"
             name="name"
@@ -102,7 +132,9 @@ export default function HomeContent() {
         <p className="text-sm text-gray-400 mt-4">
           🎁 Early users get exclusive earning bonuses
         </p>
+
       </section>
+
     </main>
   );
 }
