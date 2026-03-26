@@ -19,13 +19,11 @@ export default function SuccessContent() {
         Invite your friends and earn early access + bonuses.
       </p>
 
-      {/* Referral Box */}
       <div className="bg-gray-900 p-4 rounded w-full max-w-md mb-4">
         <p className="text-sm text-gray-400 mb-2">Your Referral Link:</p>
         <p className="break-all text-green-400">{referralLink}</p>
       </div>
 
-      {/* WhatsApp Share */}
       <a
         href={`https://wa.me/?text=Join SpinEarn and start earning here: ${referralLink}`}
         target="_blank"
