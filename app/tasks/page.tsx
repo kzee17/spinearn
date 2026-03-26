@@ -14,13 +14,15 @@ export default function Tasks() {
   }, []);
 
   const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
 
-    if (!user) {
+    // ❌ Not logged in
+    if (!session) {
       window.location.href = '/auth';
-    } else {
-      setUserEmail(user.email || '');
+      return;
     }
+
+    setUserEmail(session.user.email || '');
   };
 
   useEffect(() => {
@@ -43,6 +45,7 @@ export default function Tasks() {
   };
 
   const completeTask = async (task: any) => {
+    // 🔍 Prevent duplicate
     const { data: existing } = await supabase
       .from('user_tasks')
       .select('*')
@@ -51,10 +54,11 @@ export default function Tasks() {
       .single();
 
     if (existing) {
-      alert("⚠️ Already completed");
+      alert("⚠️ You already completed this task");
       return;
     }
 
+    // ✅ Save task
     await supabase.from('user_tasks').insert([
       {
         user_email: userEmail,
@@ -63,6 +67,7 @@ export default function Tasks() {
       },
     ]);
 
+    // 🔄 Update wallet
     const { data: user } = await supabase
       .from('waitlist_users')
       .select('*')
@@ -79,44 +84,61 @@ export default function Tasks() {
         .eq('email', userEmail);
     }
 
+    // ✅ Update UI instantly
     setCompletedTasks((prev) => [...prev, task.id]);
 
-    alert(`🎉 Earned ${task.reward} point`);
+    alert(`🎉 You earned ${task.reward} Spin Point`);
   };
 
   return (
     <main className="min-h-screen bg-black text-white px-6 py-10">
+
       <h1 className="text-4xl font-bold text-center mb-8">
         💰 Earn Spin Points
       </h1>
 
       <div className="max-w-xl mx-auto">
         {tasks.map((task) => {
-          const done = completedTasks.includes(task.id);
+          const isDone = completedTasks.includes(task.id);
 
           return (
             <div key={task.id} className="bg-gray-900 p-4 rounded mb-4">
-              <h2 className="font-semibold">{task.title}</h2>
 
-              <div className="flex gap-2 mt-2">
-                <a href={task.link} target="_blank" className="bg-blue-500 px-3 py-2 rounded">
+              <h2 className="text-lg font-semibold">{task.title}</h2>
+
+              <p className="text-sm text-gray-400 mb-2">
+                Reward: {task.reward} point
+              </p>
+
+              <div className="flex gap-2">
+
+                <a
+                  href={task.link}
+                  target="_blank"
+                  className="bg-blue-500 px-4 py-2 rounded"
+                >
                   Go
                 </a>
 
                 <button
-                  disabled={done}
+                  disabled={isDone}
                   onClick={() => completeTask(task)}
-                  className={`px-3 py-2 rounded ${
-                    done ? 'bg-gray-600' : 'bg-green-500'
+                  className={`px-4 py-2 rounded ${
+                    isDone
+                      ? 'bg-gray-600 cursor-not-allowed'
+                      : 'bg-green-500 hover:bg-green-600'
                   }`}
                 >
-                  {done ? 'Done' : 'Confirm'}
+                  {isDone ? 'Completed' : 'Confirm'}
                 </button>
+
               </div>
+
             </div>
           );
         })}
       </div>
+
     </main>
   );
 }
