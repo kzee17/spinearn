@@ -11,7 +11,6 @@ export default function Wallet() {
     checkUser();
   }, []);
 
-  // 🔐 Check auth + load user
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
 
@@ -22,16 +21,20 @@ export default function Wallet() {
 
     const email = session.user.email;
 
-    // 🔍 Try fetch user
-    let { data } = await supabase
+    // 🔥 FIX: use maybeSingle instead of single
+    let { data, error } = await supabase
       .from('waitlist_users')
       .select('*')
       .eq('email', email)
-      .single();
+      .maybeSingle();
 
-    // 🔥 Auto create if not exist
+    if (error) {
+      console.error("Fetch error:", error);
+    }
+
+    // 🔥 If user does not exist → create
     if (!data) {
-      const { data: newUser } = await supabase
+      const { data: newUser, error: insertError } = await supabase
         .from('waitlist_users')
         .insert([
           {
@@ -43,6 +46,12 @@ export default function Wallet() {
         .select()
         .single();
 
+      if (insertError) {
+        console.error("Insert error:", insertError);
+        setLoading(false);
+        return;
+      }
+
       setUser(newUser);
     } else {
       setUser(data);
@@ -51,7 +60,6 @@ export default function Wallet() {
     setLoading(false);
   };
 
-  // 💰 Withdraw function
   const handleWithdraw = async () => {
     if (!user) return;
 
@@ -60,10 +68,7 @@ export default function Wallet() {
       return;
     }
 
-    const confirmWithdraw = confirm(
-      `Withdraw ₦${user.balance_naira}?`
-    );
-
+    const confirmWithdraw = confirm(`Withdraw ₦${user.balance_naira}?`);
     if (!confirmWithdraw) return;
 
     const { error } = await supabase.from('withdrawals').insert([
@@ -80,7 +85,6 @@ export default function Wallet() {
       return;
     }
 
-    // Reset wallet after request
     await supabase
       .from('waitlist_users')
       .update({
@@ -90,12 +94,9 @@ export default function Wallet() {
       .eq('email', user.email);
 
     alert("✅ Withdrawal request submitted!");
-
-    // Refresh UI
     window.location.reload();
   };
 
-  // ⏳ Loading UI
   if (loading) {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -107,7 +108,7 @@ export default function Wallet() {
   if (!user) {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center">
-        <p>Error loading user</p>
+        <p>⚠️ Unable to load wallet</p>
       </main>
     );
   }
@@ -119,13 +120,11 @@ export default function Wallet() {
 
       <div className="bg-gray-900 p-6 rounded w-full max-w-md text-center">
 
-        {/* Spin Points */}
         <p className="text-gray-400 mb-2">Spin Points</p>
         <h2 className="text-3xl font-bold text-green-400 mb-4">
           {user.spin_points}
         </h2>
 
-        {/* Balance */}
         <p className="text-gray-400 mb-2">Balance (₦)</p>
         <h2 className="text-2xl font-bold">
           ₦{user.balance_naira}
@@ -133,7 +132,6 @@ export default function Wallet() {
 
       </div>
 
-      {/* Withdraw Button */}
       <button
         onClick={handleWithdraw}
         className="mt-6 bg-green-500 hover:bg-green-600 px-6 py-3 rounded font-bold"
@@ -141,7 +139,6 @@ export default function Wallet() {
         Withdraw 💰
       </button>
 
-      {/* Info */}
       <p className="text-sm text-gray-400 mt-4 text-center">
         Minimum withdrawal: 1000 Spin Points (₦1000)
       </p>
