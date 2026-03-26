@@ -22,7 +22,26 @@ export default function Tasks() {
       return;
     }
 
-    setUserEmail(session.user.email || '');
+    const email = session.user.email;
+
+    // 🔥 Ensure user exists
+    let { data } = await supabase
+      .from('waitlist_users')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (!data) {
+      await supabase.from('waitlist_users').insert([
+        {
+          email,
+          spin_points: 0,
+          balance_naira: 0,
+        },
+      ]);
+    }
+
+    setUserEmail(email || '');
   };
 
   useEffect(() => {
@@ -58,7 +77,7 @@ export default function Tasks() {
       return;
     }
 
-    // ✅ Save task
+    // ✅ Save completion
     await supabase.from('user_tasks').insert([
       {
         user_email: userEmail,
@@ -84,7 +103,7 @@ export default function Tasks() {
         .eq('email', userEmail);
     }
 
-    // ✅ Update UI instantly
+    // Update UI instantly
     setCompletedTasks((prev) => [...prev, task.id]);
 
     alert(`🎉 You earned ${task.reward} Spin Point`);
@@ -99,7 +118,7 @@ export default function Tasks() {
 
       <div className="max-w-xl mx-auto">
         {tasks.map((task) => {
-          const isDone = completedTasks.includes(task.id);
+          const done = completedTasks.includes(task.id);
 
           return (
             <div key={task.id} className="bg-gray-900 p-4 rounded mb-4">
@@ -121,15 +140,15 @@ export default function Tasks() {
                 </a>
 
                 <button
-                  disabled={isDone}
+                  disabled={done}
                   onClick={() => completeTask(task)}
                   className={`px-4 py-2 rounded ${
-                    isDone
+                    done
                       ? 'bg-gray-600 cursor-not-allowed'
                       : 'bg-green-500 hover:bg-green-600'
                   }`}
                 >
-                  {isDone ? 'Completed' : 'Confirm'}
+                  {done ? 'Completed' : 'Confirm'}
                 </button>
 
               </div>

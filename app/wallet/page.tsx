@@ -13,7 +13,7 @@ export default function Wallet() {
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
 
-    // ❌ Not logged in → redirect
+    // ❌ Not logged in
     if (!session) {
       window.location.href = '/auth';
       return;
@@ -21,22 +21,38 @@ export default function Wallet() {
 
     const email = session.user.email;
 
-    // ✅ Fetch user wallet
-    const { data, error } = await supabase
+    // 🔍 Try fetch user
+    let { data, error } = await supabase
       .from('waitlist_users')
       .select('*')
       .eq('email', email)
       .single();
 
-    if (error) {
-      console.error(error);
-      return;
-    }
+    // 🔥 If user does NOT exist → create
+    if (!data) {
+      const { data: newUser, error: insertError } = await supabase
+        .from('waitlist_users')
+        .insert([
+          {
+            email,
+            spin_points: 0,
+            balance_naira: 0,
+          },
+        ])
+        .select()
+        .single();
 
-    setUser(data);
+      if (insertError) {
+        console.error(insertError);
+        return;
+      }
+
+      setUser(newUser);
+    } else {
+      setUser(data);
+    }
   };
 
-  // ⏳ Loading state
   if (!user) {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center">
