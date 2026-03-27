@@ -9,15 +9,16 @@ export default function Tasks() {
   const [completedTasks, setCompletedTasks] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Anti-cheat states
   const [activeTask, setActiveTask] = useState<string | null>(null);
   const [timer, setTimer] = useState(0);
+
+  // 🆕 proof state
+  const [proof, setProof] = useState<File | null>(null);
 
   useEffect(() => {
     init();
   }, []);
 
-  // INIT
   const init = async () => {
     const { data: { session } } = await supabase.auth.getSession();
 
@@ -29,7 +30,6 @@ export default function Tasks() {
     const email = session.user.email;
     setUserEmail(email || '');
 
-    // Ensure user exists
     let { data: user } = await supabase
       .from('waitlist_users')
       .select('*')
@@ -52,18 +52,11 @@ export default function Tasks() {
     setLoading(false);
   };
 
-  // Fetch tasks
   const fetchTasks = async () => {
-    const { data, error } = await supabase.from('tasks').select('*');
-
-    if (error) {
-      console.error("Tasks error:", error);
-    }
-
+    const { data } = await supabase.from('tasks').select('*');
     setTasks(data || []);
   };
 
-  // Fetch completed tasks
   const fetchCompletedTasks = async (email: string) => {
     const { data } = await supabase
       .from('user_tasks')
@@ -78,7 +71,6 @@ export default function Tasks() {
   const startTask = (taskId: string, link: string) => {
     setActiveTask(taskId);
     setTimer(10);
-
     window.open(link, '_blank');
 
     const interval = setInterval(() => {
@@ -92,17 +84,51 @@ export default function Tasks() {
     }, 1000);
   };
 
-  // COMPLETE TASK (ANTI-CHEAT FULL)
+  // 🆕 Upload proof
+  const uploadProof = async (file: File) => {
+    const filePath = `proofs/${Date.now()}-${file.name}`;
+
+    const { error } = await supabase.storage
+      .from('proofs')
+      .upload(filePath, file);
+
+    if (error) {
+      console.error(error);
+      return null;
+    }
+
+    return filePath;
+  };
+
+  // COMPLETE TASK
   const completeTask = async (task: any) => {
     if (!userEmail) return;
 
-    // ⏳ Timer check
     if (timer > 0) {
-      alert("⏳ Please wait before confirming");
+      alert("⏳ Wait for timer");
       return;
     }
 
-    // 🔍 Duplicate check
+    if (!proof) {
+      alert("⚠️ Please upload proof screenshot");
+      return;
+    }
+
+    // DAILY LIMIT
+    const today = new Date().toISOString().split('T')[0];
+
+    const { data: todayTasks } = await supabase
+      .from('user_tasks')
+      .select('*')
+      .eq('user_email', userEmail)
+      .gte('created_at', today);
+
+    if ((todayTasks?.length || 0) >= 10) {
+      alert("⚠️ Daily limit reached");
+      return;
+    }
+
+    // DUPLICATE CHECK
     const { data: existing } = await supabase
       .from('user_tasks')
       .select('*')
@@ -115,34 +141,20 @@ export default function Tasks() {
       return;
     }
 
-    // 🚫 DAILY LIMIT CHECK (10 per day)
-    const today = new Date().toISOString().split('T')[0];
-
-    const { data: todayTasks } = await supabase
-      .from('user_tasks')
-      .select('*')
-      .eq('user_email', userEmail)
-      .gte('created_at', today);
-
-    if ((todayTasks?.length || 0) >= 10) {
-      alert("⚠️ Daily limit reached (10 tasks)");
-      return;
-    }
-
-    // 🌐 GET IP ADDRESS
+    // 🌐 IP
     let ip = '';
     try {
       const res = await fetch('https://api.ipify.org?format=json');
       const json = await res.json();
       ip = json.ip;
-    } catch (err) {
-      console.error("IP fetch error", err);
-    }
+    } catch {}
 
-    // 📱 DEVICE INFO
     const device = navigator.userAgent;
 
-    // ✅ SAVE TASK COMPLETION
+    // 🆕 Upload proof
+    const proofUrl = await uploadProof(proof);
+
+    // SAVE TASK
     await supabase.from('user_tasks').insert([
       {
         user_email: userEmail,
@@ -152,10 +164,11 @@ export default function Tasks() {
         completed_at: new Date(),
         ip_address: ip,
         device_info: device,
+        proof_url: proofUrl,
       },
     ]);
 
-    // 💰 UPDATE WALLET
+    // UPDATE WALLET
     const { data: user } = await supabase
       .from('waitlist_users')
       .select('*')
@@ -172,18 +185,17 @@ export default function Tasks() {
         .eq('email', userEmail);
     }
 
-    // UI update
     setCompletedTasks((prev) => [...prev, task.id]);
     setActiveTask(null);
+    setProof(null);
 
-    alert(`✅ Task verified! You earned ${task.reward} points`);
+    alert(`✅ Verified! You earned ${task.reward}`);
   };
 
-  // LOADING
   if (loading) {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center">
-        <p>Loading tasks...</p>
+        Loading...
       </main>
     );
   }
@@ -191,7 +203,7 @@ export default function Tasks() {
   return (
     <main className="min-h-screen bg-black text-white px-6 py-10">
 
-      <h1 className="text-4xl font-bold text-center mb-8">
+      <h1 className="text-4xl text-center mb-8">
         💰 Earn Spin Points
       </h1>
 
@@ -209,36 +221,34 @@ export default function Tasks() {
           return (
             <div key={task.id} className="bg-gray-900 p-4 rounded mb-4">
 
-              <h2 className="text-lg font-semibold">{task.title}</h2>
-
+              <h2 className="font-semibold">{task.title}</h2>
               <p className="text-sm text-gray-400 mb-2">
-                Reward: {task.reward} points
+                Reward: {task.reward}
               </p>
+
+              {/* 🆕 Upload Proof */}
+              {isActive && !done && (
+                <input
+                  type="file"
+                  onChange={(e) => setProof(e.target.files?.[0] || null)}
+                  className="mb-2"
+                />
+              )}
 
               <div className="flex gap-2">
 
-                {/* Start */}
                 <button
                   onClick={() => startTask(task.id, task.link)}
                   disabled={done}
-                  className={`px-4 py-2 rounded ${
-                    done ? 'bg-gray-600' : 'bg-blue-500 hover:bg-blue-600'
-                  }`}
+                  className="bg-blue-500 px-4 py-2 rounded"
                 >
                   Start
                 </button>
 
-                {/* Confirm */}
                 <button
                   disabled={done || !isActive || timer > 0}
                   onClick={() => completeTask(task)}
-                  className={`px-4 py-2 rounded ${
-                    done
-                      ? 'bg-gray-600'
-                      : timer > 0 && isActive
-                      ? 'bg-yellow-500'
-                      : 'bg-green-500 hover:bg-green-600'
-                  }`}
+                  className="bg-green-500 px-4 py-2 rounded"
                 >
                   {done
                     ? 'Completed'
