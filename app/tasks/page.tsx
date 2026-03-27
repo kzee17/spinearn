@@ -9,7 +9,7 @@ export default function Tasks() {
   const [completedTasks, setCompletedTasks] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 🔐 Anti-cheat states
+  // Anti-cheat states
   const [activeTask, setActiveTask] = useState<string | null>(null);
   const [timer, setTimer] = useState(0);
 
@@ -17,7 +17,7 @@ export default function Tasks() {
     init();
   }, []);
 
-  // 🚀 INIT
+  // INIT
   const init = async () => {
     const { data: { session } } = await supabase.auth.getSession();
 
@@ -29,7 +29,7 @@ export default function Tasks() {
     const email = session.user.email;
     setUserEmail(email || '');
 
-    // 🔥 Ensure user exists
+    // Ensure user exists
     let { data: user } = await supabase
       .from('waitlist_users')
       .select('*')
@@ -52,7 +52,7 @@ export default function Tasks() {
     setLoading(false);
   };
 
-  // 📥 FETCH TASKS
+  // Fetch tasks
   const fetchTasks = async () => {
     const { data, error } = await supabase.from('tasks').select('*');
 
@@ -63,7 +63,7 @@ export default function Tasks() {
     setTasks(data || []);
   };
 
-  // 📥 FETCH COMPLETED TASKS
+  // Fetch completed tasks
   const fetchCompletedTasks = async (email: string) => {
     const { data } = await supabase
       .from('user_tasks')
@@ -74,10 +74,10 @@ export default function Tasks() {
     setCompletedTasks(ids);
   };
 
-  // ⏳ START TASK (ANTI-CHEAT TIMER)
+  // START TASK
   const startTask = (taskId: string, link: string) => {
     setActiveTask(taskId);
-    setTimer(10); // 10 seconds delay
+    setTimer(10);
 
     window.open(link, '_blank');
 
@@ -92,16 +92,17 @@ export default function Tasks() {
     }, 1000);
   };
 
-  // ✅ COMPLETE TASK
+  // COMPLETE TASK (ANTI-CHEAT FULL)
   const completeTask = async (task: any) => {
+    if (!userEmail) return;
+
+    // ⏳ Timer check
     if (timer > 0) {
       alert("⏳ Please wait before confirming");
       return;
     }
 
-    if (!userEmail) return;
-
-    // 🔍 Prevent duplicate
+    // 🔍 Duplicate check
     const { data: existing } = await supabase
       .from('user_tasks')
       .select('*')
@@ -114,7 +115,34 @@ export default function Tasks() {
       return;
     }
 
-    // ✅ Save completion with timestamps
+    // 🚫 DAILY LIMIT CHECK (10 per day)
+    const today = new Date().toISOString().split('T')[0];
+
+    const { data: todayTasks } = await supabase
+      .from('user_tasks')
+      .select('*')
+      .eq('user_email', userEmail)
+      .gte('created_at', today);
+
+    if ((todayTasks?.length || 0) >= 10) {
+      alert("⚠️ Daily limit reached (10 tasks)");
+      return;
+    }
+
+    // 🌐 GET IP ADDRESS
+    let ip = '';
+    try {
+      const res = await fetch('https://api.ipify.org?format=json');
+      const json = await res.json();
+      ip = json.ip;
+    } catch (err) {
+      console.error("IP fetch error", err);
+    }
+
+    // 📱 DEVICE INFO
+    const device = navigator.userAgent;
+
+    // ✅ SAVE TASK COMPLETION
     await supabase.from('user_tasks').insert([
       {
         user_email: userEmail,
@@ -122,10 +150,12 @@ export default function Tasks() {
         status: 'completed',
         started_at: new Date(),
         completed_at: new Date(),
+        ip_address: ip,
+        device_info: device,
       },
     ]);
 
-    // 🔄 Update wallet
+    // 💰 UPDATE WALLET
     const { data: user } = await supabase
       .from('waitlist_users')
       .select('*')
@@ -142,14 +172,14 @@ export default function Tasks() {
         .eq('email', userEmail);
     }
 
-    // Update UI
+    // UI update
     setCompletedTasks((prev) => [...prev, task.id]);
     setActiveTask(null);
 
     alert(`✅ Task verified! You earned ${task.reward} points`);
   };
 
-  // ⏳ LOADING
+  // LOADING
   if (loading) {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -165,14 +195,12 @@ export default function Tasks() {
         💰 Earn Spin Points
       </h1>
 
-      {/* No tasks */}
       {tasks.length === 0 && (
         <p className="text-center text-gray-400">
           No tasks available yet.
         </p>
       )}
 
-      {/* Tasks */}
       <div className="max-w-xl mx-auto">
         {tasks.map((task) => {
           const done = completedTasks.includes(task.id);
