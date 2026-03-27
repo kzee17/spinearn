@@ -7,31 +7,32 @@ export default function Tasks() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [userEmail, setUserEmail] = useState('');
   const [completedTasks, setCompletedTasks] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
+  // 🔐 Check user + load tasks
   useEffect(() => {
-    checkUser();
-    fetchTasks();
+    init();
   }, []);
 
-  const checkUser = async () => {
+  const init = async () => {
     const { data: { session } } = await supabase.auth.getSession();
 
-    // ❌ Not logged in
     if (!session) {
       window.location.href = '/auth';
       return;
     }
 
     const email = session.user.email;
+    setUserEmail(email || '');
 
     // 🔥 Ensure user exists
-    let { data } = await supabase
+    let { data: user } = await supabase
       .from('waitlist_users')
       .select('*')
       .eq('email', email)
-      .single();
+      .maybeSingle();
 
-    if (!data) {
+    if (!user) {
       await supabase.from('waitlist_users').insert([
         {
           email,
@@ -41,43 +42,52 @@ export default function Tasks() {
       ]);
     }
 
-    setUserEmail(email || '');
+    await fetchTasks();
+    await fetchCompletedTasks(email || '');
+
+    setLoading(false);
   };
 
-  useEffect(() => {
-    if (userEmail) fetchCompletedTasks();
-  }, [userEmail]);
-
+  // 📥 Get all tasks
   const fetchTasks = async () => {
-    const { data } = await supabase.from('tasks').select('*');
+    const { data, error } = await supabase.from('tasks').select('*');
+
+    if (error) {
+      console.error("Tasks error:", error);
+    }
+
     setTasks(data || []);
   };
 
-  const fetchCompletedTasks = async () => {
+  // 📥 Get completed tasks
+  const fetchCompletedTasks = async (email: string) => {
     const { data } = await supabase
       .from('user_tasks')
       .select('task_id')
-      .eq('user_email', userEmail);
+      .eq('user_email', email);
 
     const ids = data?.map((t: any) => t.task_id) || [];
     setCompletedTasks(ids);
   };
 
+  // ✅ Complete task
   const completeTask = async (task: any) => {
+    if (!userEmail) return;
+
     // 🔍 Prevent duplicate
     const { data: existing } = await supabase
       .from('user_tasks')
       .select('*')
       .eq('user_email', userEmail)
       .eq('task_id', task.id)
-      .single();
+      .maybeSingle();
 
     if (existing) {
-      alert("⚠️ You already completed this task");
+      alert("⚠️ Already completed");
       return;
     }
 
-    // ✅ Save completion
+    // Save task
     await supabase.from('user_tasks').insert([
       {
         user_email: userEmail,
@@ -86,12 +96,12 @@ export default function Tasks() {
       },
     ]);
 
-    // 🔄 Update wallet
+    // Update wallet
     const { data: user } = await supabase
       .from('waitlist_users')
       .select('*')
       .eq('email', userEmail)
-      .single();
+      .maybeSingle();
 
     if (user) {
       await supabase
@@ -109,6 +119,15 @@ export default function Tasks() {
     alert(`🎉 You earned ${task.reward} Spin Point`);
   };
 
+  // ⏳ Loading
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-black text-white flex items-center justify-center">
+        <p>Loading tasks...</p>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-black text-white px-6 py-10">
 
@@ -116,6 +135,14 @@ export default function Tasks() {
         💰 Earn Spin Points
       </h1>
 
+      {/* ❌ No tasks */}
+      {tasks.length === 0 && (
+        <p className="text-center text-gray-400">
+          No tasks available yet.
+        </p>
+      )}
+
+      {/* ✅ Tasks list */}
       <div className="max-w-xl mx-auto">
         {tasks.map((task) => {
           const done = completedTasks.includes(task.id);
@@ -126,11 +153,12 @@ export default function Tasks() {
               <h2 className="text-lg font-semibold">{task.title}</h2>
 
               <p className="text-sm text-gray-400 mb-2">
-                Reward: {task.reward} point
+                Reward: {task.reward} points
               </p>
 
               <div className="flex gap-2">
 
+                {/* Go button */}
                 <a
                   href={task.link}
                   target="_blank"
@@ -139,6 +167,7 @@ export default function Tasks() {
                   Go
                 </a>
 
+                {/* Confirm button */}
                 <button
                   disabled={done}
                   onClick={() => completeTask(task)}
