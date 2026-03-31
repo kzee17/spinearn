@@ -40,30 +40,22 @@ export default function HomeContent() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // ✅ FIXED HANDLE SUBMIT
+  // Handle submit
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     try {
-      // Generate referral code
       const referralCode =
         formData.name.slice(0, 3).toUpperCase() +
         Math.floor(Math.random() * 10000);
 
-      // Check if user exists
-      const { data: existingUser, error: fetchError } = await supabase
+      // Check existing user
+      const { data: existingUser } = await supabase
         .from('waitlist_users')
         .select('*')
         .eq('email', formData.email)
         .maybeSingle();
 
-      if (fetchError) {
-        console.error(fetchError);
-        alert(fetchError.message);
-        return;
-      }
-
-      // Prevent duplicate
       if (existingUser) {
         alert("⚠️ You already joined. Please login.");
         window.location.href = '/auth';
@@ -71,27 +63,25 @@ export default function HomeContent() {
       }
 
       // Insert user
-      const { error: insertError } = await supabase
-        .from('waitlist_users')
-        .insert([
-          {
-            name: formData.name,
-            email: formData.email,
-            phone: formData.phone,
-            referral_code: referralCode,
-            referred_by: ref || null,
-            spin_points: 0,
-            balance_naira: 0,
-          },
-        ]);
+      const { error } = await supabase.from('waitlist_users').insert([
+        {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          referral_code: referralCode,
+          referred_by: ref || null,
+          spin_points: 0,
+          balance_naira: 0,
+        },
+      ]);
 
-      if (insertError) {
-        console.error(insertError);
-        alert(insertError.message);
+      if (error) {
+        alert(error.message);
+        console.error(error);
         return;
       }
 
-      // Redirect
+      // Redirect to success page
       window.location.href = `/success?ref=${referralCode}`;
 
     } catch (err) {
@@ -103,6 +93,36 @@ export default function HomeContent() {
   return (
     <main className="min-h-screen bg-black text-white">
 
+      {/* HEADER */}
+      <div className="w-full flex justify-between items-center px-6 py-4">
+
+        <h1 className="text-xl font-bold text-green-400">
+          SpinEarn
+        </h1>
+
+        <div className="flex gap-3">
+
+          {/* Login */}
+          <a
+            href="/auth"
+            className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded text-sm"
+          >
+            Login 🔐
+          </a>
+
+          {/* Admin */}
+          <a
+            href="/admin"
+            className="bg-yellow-500 hover:bg-yellow-600 text-black px-4 py-2 rounded text-sm"
+          >
+            Admin ⚙️
+          </a>
+
+        </div>
+
+      </div>
+
+      {/* HERO */}
       <section className="flex flex-col items-center justify-center text-center px-6 py-20">
 
         <h1 className="text-4xl md:text-6xl font-bold mb-4">
@@ -115,8 +135,8 @@ export default function HomeContent() {
         </p>
 
         <p className="text-lg text-gray-300 max-w-2xl mb-6">
-          SpinEarn™ by Spinbyte is a fintech-powered platform where you earn from referrals,
-          content, and engagement.
+          SpinEarn™ by Spinbyte is a fintech-powered platform where you earn from
+          referrals, content, and engagement.
         </p>
 
         {/* FORM */}
@@ -154,7 +174,7 @@ export default function HomeContent() {
 
           <button
             type="submit"
-            className="w-full bg-green-500 py-3 rounded font-bold"
+            className="w-full bg-green-500 hover:bg-green-600 py-3 rounded font-bold"
           >
             Join Waitlist 🚀
           </button>
