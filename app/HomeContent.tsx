@@ -40,21 +40,33 @@ export default function HomeContent() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Handle submit
+  // ✅ FIXED SUBMIT HANDLER
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    // 🔥 Validate inputs (prevents null errors)
+    if (!formData.name || !formData.email || !formData.phone) {
+      alert("Please fill all fields");
+      return;
+    }
 
     try {
       const referralCode =
         formData.name.slice(0, 3).toUpperCase() +
         Math.floor(Math.random() * 10000);
 
-      // Check existing user
-      const { data: existingUser } = await supabase
+      // 🔍 Check existing user safely
+      const { data: existingUser, error: checkError } = await supabase
         .from('waitlist_users')
-        .select('*')
+        .select('id,email')
         .eq('email', formData.email)
         .maybeSingle();
+
+      if (checkError) {
+        console.error("Check user error:", checkError);
+        alert(checkError.message);
+        return;
+      }
 
       if (existingUser) {
         alert("⚠️ You already joined. Please login.");
@@ -62,8 +74,8 @@ export default function HomeContent() {
         return;
       }
 
-      // Insert user
-      const { error } = await supabase.from('waitlist_users').insert([
+      // ✅ Insert user safely
+      const { error: insertError } = await supabase.from('waitlist_users').insert([
         {
           name: formData.name,
           email: formData.email,
@@ -75,17 +87,17 @@ export default function HomeContent() {
         },
       ]);
 
-      if (error) {
-        alert(error.message);
-        console.error(error);
+      if (insertError) {
+        console.error("Insert error:", insertError);
+        alert(insertError.message);
         return;
       }
 
-      // Redirect to success page
+      // 🚀 Redirect
       window.location.href = `/success?ref=${referralCode}`;
 
     } catch (err) {
-      console.error(err);
+      console.error("Unexpected error:", err);
       alert("❌ Something went wrong");
     }
   };
