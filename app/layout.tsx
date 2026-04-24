@@ -5,7 +5,6 @@ export const metadata: Metadata = {
   title: "SpinEarn – Fintech Engagement & Earning Platform",
   description:
     "SpinEarn is a fintech-powered engagement platform enabling users to earn through digital tasks, referrals, and verified social interactions.",
-  authors: [{ name: "Spinbyte International Ltd" }],
   keywords: [
     "SpinEarn",
     "Spinbyte",
@@ -15,6 +14,7 @@ export const metadata: Metadata = {
     "social engagement earning",
     "online income platform",
   ],
+  authors: [{ name: "Spinbyte International Ltd" }],
   openGraph: {
     title: "SpinEarn – Fintech Engagement Platform",
     description:
@@ -38,11 +38,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head>
+      <body>
         <script
           async
           src="https://www.googletagmanager.com/gtag/js?id=G-7CME11RYDP"
         />
+
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -53,8 +54,9 @@ export default function RootLayout({
             `,
           }}
         />
-      </head>
-      <body>{children}</body>
+
+        {children}
+      </body>
     </html>
   );
 }
