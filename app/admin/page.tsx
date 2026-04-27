@@ -9,14 +9,16 @@ export default function AdminDashboard() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [userTasks, setUserTasks] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [advances, setAdvances] = useState<any[]>([]);
 
   useEffect(() => {
     checkAdmin();
   }, []);
 
   const checkAdmin = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
     if (!session) {
       window.location.href = '/auth';
@@ -25,19 +27,18 @@ export default function AdminDashboard() {
 
     const email = session.user.email;
 
-    const { data } = await supabase
+    const { data: admin } = await supabase
       .from('admins')
       .select('*')
       .eq('email', email)
       .maybeSingle();
 
-    if (!data) {
-      alert("Access denied");
+    if (!admin) {
+      alert('Access denied');
       window.location.href = '/';
       return;
     }
 
-    setIsAdmin(true);
     await loadData();
     setLoading(false);
   };
@@ -46,145 +47,323 @@ export default function AdminDashboard() {
     const { data: u } = await supabase.from('waitlist_users').select('*');
     const { data: t } = await supabase.from('tasks').select('*');
     const { data: ut } = await supabase.from('user_tasks').select('*');
-    const { data: w } = await supabase.from('withdrawals').select('*');
+
+    const { data: w } = await supabase
+      .from('withdrawals')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    const { data: a } = await supabase
+      .from('wallet_advances')
+      .select('*')
+      .order('created_at', { ascending: false });
 
     setUsers(u || []);
     setTasks(t || []);
     setUserTasks(ut || []);
     setWithdrawals(w || []);
+    setAdvances(a || []);
   };
 
-  // 📊 Analytics
-  const totalEarnings = users.reduce((sum, u) => sum + (u.balance_naira || 0), 0);
+  const totalEarnings = users.reduce(
+    (sum, user) => sum + Number(user.balance_naira || 0),
+    0
+  );
 
-  // 🚨 Fraud Detection
   const detectFraud = () => {
-    const ipMap: any = {};
+    const ipMap: Record<string, number> = {};
 
-    userTasks.forEach((t) => {
-      if (!t.ip_address) return;
-
-      ipMap[t.ip_address] = (ipMap[t.ip_address] || 0) + 1;
+    userTasks.forEach((task) => {
+      if (!task.ip_address) return;
+      ipMap[task.ip_address] = (ipMap[task.ip_address] || 0) + 1;
     });
 
-    return Object.entries(ipMap).filter(([_, count]) => Number(count) > 5);
+    return Object.entries(ipMap).filter(([_, count]) => count > 5);
   };
 
   const fraudIPs = detectFraud();
 
-  // 💰 Approve withdrawal
   const approveWithdrawal = async (id: string) => {
-    await supabase
+    const { error } = await supabase
       .from('withdrawals')
       .update({ status: 'approved' })
       .eq('id', id);
 
-    alert("✅ Approved");
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    alert('✅ Withdrawal approved');
     loadData();
   };
 
-  // ❌ Reject withdrawal
   const rejectWithdrawal = async (id: string) => {
-    await supabase
+    const { error } = await supabase
       .from('withdrawals')
       .update({ status: 'rejected' })
       .eq('id', id);
 
-    alert("❌ Rejected");
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    alert('❌ Withdrawal rejected');
+    loadData();
+  };
+
+  const approveAdvance = async (advance: any) => {
+    if (advance.status !== 'supporters_approved') {
+      alert('Both supporters must approve before admin approval.');
+      return;
+    }
+
+    const confirmApproval = confirm(
+      `Approve and credit ₦${Number(advance.amount || 0).toLocaleString()} to ${advance.user_email}?`
+    );
+
+    if (!confirmApproval) return;
+
+    const { error: advanceError } = await supabase
+      .from('wallet_advances')
+      .update({
+        status: 'approved',
+        admin_approved: true,
+        disbursed: true,
+        approved_at: new Date(),
+        disbursed_at: new Date(),
+      })
+      .eq('id', advance.id);
+
+    if (advanceError) {
+      alert(advanceError.message);
+      return;
+    }
+
+    const { data: member } = await supabase
+      .from('wallet_members')
+      .select('*')
+      .eq('user_email', advance.user_email)
+      .maybeSingle();
+
+    if (member) {
+      const { error: walletError } = await supabase
+        .from('wallet_members')
+        .update({
+          wallet_balance:
+            Number(member.wallet_balance || 0) + Number(advance.amount || 0),
+        })
+        .eq('user_email', advance.user_email);
+
+      if (walletError) {
+        alert(walletError.message);
+        return;
+      }
+    }
+
+    alert('✅ Advance approved and wallet credited');
+    loadData();
+  };
+
+  const rejectAdvance = async (advanceId: string) => {
+    const confirmReject = confirm('Reject this advance request?');
+    if (!confirmReject) return;
+
+    const { error } = await supabase
+      .from('wallet_advances')
+      .update({
+        status: 'rejected',
+        admin_approved: false,
+        disbursed: false,
+      })
+      .eq('id', advanceId);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    alert('❌ Advance rejected');
     loadData();
   };
 
   if (loading) {
-    return <div className="text-white text-center mt-10">Loading...</div>;
+    return (
+      <main className="min-h-screen bg-black text-white flex items-center justify-center">
+        <p>Loading admin dashboard...</p>
+      </main>
+    );
   }
 
   return (
     <main className="min-h-screen bg-black text-white p-6">
+      <h1 className="text-4xl font-bold mb-8">⚙️ Admin Dashboard</h1>
 
-      <h1 className="text-4xl mb-6">⚙️ Admin Dashboard</h1>
-
-      {/* 📊 ANALYTICS */}
+      {/* ANALYTICS */}
       <section className="mb-10">
-        <h2 className="text-2xl mb-4">📊 Platform Analytics</h2>
+        <h2 className="text-2xl font-bold mb-4">📊 Platform Analytics</h2>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-gray-900 p-4">👥 Users: {users.length}</div>
-          <div className="bg-gray-900 p-4">📋 Tasks: {tasks.length}</div>
-          <div className="bg-gray-900 p-4">✅ Completions: {userTasks.length}</div>
-          <div className="bg-gray-900 p-4">💰 Total Earnings: ₦{totalEarnings}</div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-gray-900 p-4 rounded">👥 Users: {users.length}</div>
+          <div className="bg-gray-900 p-4 rounded">📋 Tasks: {tasks.length}</div>
+          <div className="bg-gray-900 p-4 rounded">
+            ✅ Completions: {userTasks.length}
+          </div>
+          <div className="bg-gray-900 p-4 rounded">
+            💰 Total Earnings: ₦{totalEarnings.toLocaleString()}
+          </div>
         </div>
       </section>
 
-      {/* 🚨 FRAUD */}
+      {/* FRAUD */}
       <section className="mb-10">
-        <h2 className="text-2xl text-red-400 mb-4">🚨 Fraud Detection</h2>
+        <h2 className="text-2xl font-bold text-red-400 mb-4">
+          🚨 Fraud Detection
+        </h2>
 
-        {fraudIPs.length === 0 && <p>No suspicious activity</p>}
+        {fraudIPs.length === 0 && (
+          <div className="bg-gray-900 p-4 rounded text-gray-400">
+            No suspicious IP activity detected.
+          </div>
+        )}
 
         {fraudIPs.map(([ip, count]) => (
-          <div key={ip} className="bg-red-900 p-2 mb-2">
+          <div key={ip} className="bg-red-900 p-3 rounded mb-2">
             {ip} → {String(count)} actions
           </div>
         ))}
       </section>
 
-      {/* 📸 PROOFS */}
+      {/* PROOFS */}
       <section className="mb-10">
-        <h2 className="text-2xl mb-4">📸 Proof Submissions</h2>
+        <h2 className="text-2xl font-bold mb-4">📸 Task Proofs</h2>
 
-        {userTasks.map((t) => (
-          <div key={t.id} className="bg-gray-900 p-3 mb-3">
+        {userTasks.length === 0 && (
+          <div className="bg-gray-900 p-4 rounded text-gray-400">
+            No task proofs submitted yet.
+          </div>
+        )}
 
-            <p>{t.user_email}</p>
-            <p>Task ID: {t.task_id}</p>
+        {userTasks.map((task) => (
+          <div key={task.id} className="bg-gray-900 p-4 rounded mb-3">
+            <p>User: {task.user_email}</p>
+            <p>Task ID: {task.task_id}</p>
+            <p>Status: {task.status}</p>
+            <p>IP: {task.ip_address || 'N/A'}</p>
 
-            {t.proof_url && (
+            {task.proof_url ? (
               <a
-                href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${t.proof_url}`}
+                href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${task.proof_url}`}
                 target="_blank"
                 className="text-blue-400 underline"
               >
                 View Proof
               </a>
+            ) : (
+              <p className="text-gray-500">No proof uploaded</p>
             )}
-
           </div>
         ))}
       </section>
 
-      {/* 💰 WITHDRAWALS */}
-      <section>
-        <h2 className="text-2xl mb-4">💰 Withdrawals</h2>
+      {/* ADVANCES */}
+      <section className="mb-10">
+        <h2 className="text-2xl font-bold mb-4">
+          💳 Wallet+ Advance Requests
+        </h2>
 
-        {withdrawals.map((w) => (
-          <div key={w.id} className="bg-gray-900 p-3 mb-3">
+        {advances.length === 0 && (
+          <div className="bg-gray-900 p-4 rounded text-gray-400">
+            No advance requests yet.
+          </div>
+        )}
 
-            <p>{w.user_email}</p>
-            <p>₦{w.amount}</p>
-            <p>Status: {w.status}</p>
+        {advances.map((advance) => (
+          <div key={advance.id} className="bg-gray-900 p-4 mb-3 rounded">
+            <p className="font-bold">{advance.user_email}</p>
+            <p>Amount: ₦{Number(advance.amount || 0).toLocaleString()}</p>
+            <p>
+              Service Fee: ₦
+              {Number(advance.service_fee || 0).toLocaleString()}
+            </p>
+            <p>
+              Total Settlement: ₦
+              {Number(advance.total_repay || 0).toLocaleString()}
+            </p>
+            <p>Duration: {advance.repayment_months} months</p>
+            <p>Status: {advance.status}</p>
 
-            {w.status === 'pending' && (
-              <div className="flex gap-2 mt-2">
+            <div className="text-sm text-gray-300 mt-2">
+              <p>
+                Supporter 1: {advance.supporter_one}{' '}
+                {advance.supporter_one_approved ? '✅' : '⏳'}
+              </p>
+              <p>
+                Supporter 2: {advance.supporter_two}{' '}
+                {advance.supporter_two_approved ? '✅' : '⏳'}
+              </p>
+              <p>Admin Approved: {advance.admin_approved ? '✅' : '⏳'}</p>
+              <p>Disbursed: {advance.disbursed ? '✅' : '⏳'}</p>
+            </div>
+
+            {advance.status === 'supporters_approved' && (
+              <div className="flex gap-2 mt-3">
                 <button
-                  onClick={() => approveWithdrawal(w.id)}
-                  className="bg-green-500 px-3 py-1 rounded"
+                  onClick={() => approveAdvance(advance)}
+                  className="bg-green-500 hover:bg-green-600 text-black px-3 py-2 rounded font-bold"
                 >
-                  Approve
+                  Approve & Credit Wallet
                 </button>
 
                 <button
-                  onClick={() => rejectWithdrawal(w.id)}
-                  className="bg-red-500 px-3 py-1 rounded"
+                  onClick={() => rejectAdvance(advance.id)}
+                  className="bg-red-500 hover:bg-red-600 px-3 py-2 rounded font-bold"
                 >
                   Reject
                 </button>
               </div>
             )}
-
           </div>
         ))}
       </section>
 
+      {/* WITHDRAWALS */}
+      <section>
+        <h2 className="text-2xl font-bold mb-4">💰 Withdrawals</h2>
+
+        {withdrawals.length === 0 && (
+          <div className="bg-gray-900 p-4 rounded text-gray-400">
+            No withdrawal requests yet.
+          </div>
+        )}
+
+        {withdrawals.map((withdrawal) => (
+          <div key={withdrawal.id} className="bg-gray-900 p-4 mb-3 rounded">
+            <p>{withdrawal.user_email}</p>
+            <p>₦{Number(withdrawal.amount || 0).toLocaleString()}</p>
+            <p>Status: {withdrawal.status}</p>
+
+            {withdrawal.status === 'pending' && (
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={() => approveWithdrawal(withdrawal.id)}
+                  className="bg-green-500 hover:bg-green-600 text-black px-3 py-2 rounded font-bold"
+                >
+                  Approve
+                </button>
+
+                <button
+                  onClick={() => rejectWithdrawal(withdrawal.id)}
+                  className="bg-red-500 hover:bg-red-600 px-3 py-2 rounded font-bold"
+                >
+                  Reject
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+      </section>
     </main>
   );
 }
