@@ -10,6 +10,7 @@ export default function AdminDashboard() {
   const [userTasks, setUserTasks] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [advances, setAdvances] = useState<any[]>([]);
+  const [repayments, setRepayments] = useState<any[]>([]);
 
   useEffect(() => {
     checkAdmin();
@@ -58,11 +59,19 @@ export default function AdminDashboard() {
       .select('*')
       .order('created_at', { ascending: false });
 
+      const { data: repaymentsData } = await supabase
+  .from('wallet_advance_repayments')
+  .select('*')
+  .order('created_at', { ascending: false });
+  
+
+
     setUsers(u || []);
     setTasks(t || []);
     setUserTasks(ut || []);
     setWithdrawals(w || []);
     setAdvances(a || []);
+    setRepayments(repaymentsData || []);
   };
 
   const totalEarnings = users.reduce(
@@ -266,6 +275,29 @@ export default function AdminDashboard() {
           </div>
         ))}
       </section>
+
+      <section className="max-w-7xl mx-auto mb-10">
+  <h2 className="text-2xl font-bold mb-4">💵 Advance Repayments</h2>
+
+  {repayments.length === 0 ? (
+    <div className="bg-gray-900 p-5 rounded text-gray-400">
+      No repayments yet.
+    </div>
+  ) : (
+    <div className="space-y-3">
+      {repayments.map((repayment) => (
+        <div key={repayment.id} className="bg-gray-900 p-4 rounded">
+          <p className="font-bold">{repayment.user_email}</p>
+          <p>Amount Paid: ₦{Number(repayment.amount || 0).toLocaleString()}</p>
+          <p>Status: {repayment.status}</p>
+          <p className="text-gray-400 text-sm">
+            Advance ID: {repayment.advance_id}
+          </p>
+        </div>
+      ))}
+    </div>
+  )}
+</section>
 
       {/* ADVANCES */}
       <section className="mb-10">
