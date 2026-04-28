@@ -8,6 +8,7 @@ export default function RepayAdvancePage() {
   const [repayments, setRepayments] = useState<any[]>([]);
   const [amounts, setAmounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const [paying, setPaying] = useState(false);
 
   useEffect(() => {
     loadRepaymentData();
@@ -69,11 +70,26 @@ export default function RepayAdvancePage() {
     }));
   };
 
-  const submitRepayment = async (advance: any) => {
-    const repayAmount = Number(amounts[advance.id] || 0);
+  const payRepayment = async (advance: any) => {
+    setPaying(true);
 
-    if (!repayAmount || repayAmount <= 0) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session) {
+      alert('Please login first');
+      window.location.href = '/auth';
+      return;
+    }
+
+    const email = session.user.email || '';
+
+    const repaymentAmount = Number(amounts[advance.id] || 0);
+
+    if (!repaymentAmount || repaymentAmount <= 0) {
       alert('Enter a valid repayment amount');
+      setPaying(false);
       return;
     }
 
@@ -81,54 +97,38 @@ export default function RepayAdvancePage() {
     const totalRepay = Number(advance.total_repay || 0);
     const balance = totalRepay - paidAmount;
 
-    if (repayAmount > balance) {
+    if (repaymentAmount > balance) {
       alert(`You only need to repay ₦${balance.toLocaleString()}`);
+      setPaying(false);
       return;
     }
 
-    const { error: repaymentError } = await supabase
-      .from('wallet_advance_repayments')
-      .insert([
-        {
+    const response = await fetch('/api/wallet-plus/paystack-init', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        amount: repaymentAmount,
+        payment_type: 'advance_repayment',
+        metadata: {
           advance_id: advance.id,
-          user_email: advance.user_email,
-          amount: repayAmount,
-          status: 'paid',
+          purpose: 'Wallet+ advance repayment',
         },
-      ]);
+      }),
+    });
 
-    if (repaymentError) {
-      alert(repaymentError.message);
+    const data = await response.json();
+
+    setPaying(false);
+
+    if (!response.ok) {
+      alert(data.error || 'Payment initialization failed');
       return;
     }
 
-    const newPaidAmount = paidAmount + repayAmount;
-
-    if (newPaidAmount >= totalRepay) {
-      const { error: advanceError } = await supabase
-        .from('wallet_advances')
-        .update({
-          status: 'settled',
-          settled: true,
-        })
-        .eq('id', advance.id);
-
-      if (advanceError) {
-        alert(advanceError.message);
-        return;
-      }
-
-      alert('✅ Advance fully settled!');
-    } else {
-      alert('✅ Repayment recorded successfully!');
-    }
-
-    setAmounts((prev) => ({
-      ...prev,
-      [advance.id]: 0,
-    }));
-
-    loadRepaymentData();
+    window.location.href = data.authorization_url;
   };
 
   if (loading) {
@@ -145,8 +145,8 @@ export default function RepayAdvancePage() {
         <h1 className="text-3xl font-bold mb-3">💳 Repay Wallet+ Advance</h1>
 
         <p className="text-gray-400 mb-8">
-          Make repayments toward your approved Wallet+ advance. Once the total
-          settlement amount is fully paid, the advance will be marked as settled.
+          Make secure repayments through Paystack. Once your total settlement
+          amount is fully paid, the advance will be marked as settled.
         </p>
 
         {advances.length === 0 ? (
@@ -217,10 +217,11 @@ export default function RepayAdvancePage() {
                       />
 
                       <button
-                        onClick={() => submitRepayment(advance)}
+                        onClick={() => payRepayment(advance)}
+                        disabled={paying}
                         className="bg-green-500 hover:bg-green-600 text-black px-5 py-3 rounded font-bold"
                       >
-                        Submit Repayment
+                        {paying ? 'Redirecting...' : 'Pay with Paystack'}
                       </button>
                     </div>
                   )}
