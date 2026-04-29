@@ -82,6 +82,7 @@ export default function Tasks() {
     setActiveTask(taskId);
     setTimer(10);
     setProof(null);
+
     window.open(link, '_blank');
 
     const interval = setInterval(() => {
@@ -90,6 +91,7 @@ export default function Tasks() {
           clearInterval(interval);
           return 0;
         }
+
         return prev - 1;
       });
     }, 1000);
@@ -103,7 +105,7 @@ export default function Tasks() {
       .upload(filePath, file);
 
     if (error) {
-      console.error(error);
+      console.error('Proof upload error:', error);
       return null;
     }
 
@@ -114,12 +116,12 @@ export default function Tasks() {
     if (!userEmail) return;
 
     if (timer > 0) {
-      alert('⏳ Wait for timer');
+      alert('⏳ Please wait for the timer to finish.');
       return;
     }
 
     if (!proof) {
-      alert('⚠️ Please upload proof screenshot');
+      alert('⚠️ Please upload proof screenshot.');
       return;
     }
 
@@ -132,7 +134,7 @@ export default function Tasks() {
       .gte('created_at', today);
 
     if ((todayTasks?.length || 0) >= 10) {
-      alert('⚠️ Daily limit reached');
+      alert('⚠️ Daily limit reached.');
       return;
     }
 
@@ -144,25 +146,36 @@ export default function Tasks() {
       .maybeSingle();
 
     if (existing) {
-      alert('⚠️ Already completed');
+      alert('⚠️ You have already submitted this task.');
       return;
     }
 
     let ip = '';
+
     try {
       const res = await fetch('https://api.ipify.org?format=json');
       const json = await res.json();
       ip = json.ip;
-    } catch {}
+    } catch {
+      ip = '';
+    }
 
     const device = navigator.userAgent;
     const proofUrl = await uploadProof(proof);
+
+    if (!proofUrl) {
+      alert('❌ Proof upload failed. Please try again.');
+      return;
+    }
 
     const { error: taskError } = await supabase.from('user_tasks').insert([
       {
         user_email: userEmail,
         task_id: task.id,
         status: 'completed',
+        proof_status: 'pending',
+        reward_amount: Number(task.reward || 0),
+        credited: false,
         started_at: new Date(),
         completed_at: new Date(),
         ip_address: ip,
@@ -176,23 +189,6 @@ export default function Tasks() {
       return;
     }
 
-    const { data: user } = await supabase
-      .from('waitlist_users')
-      .select('*')
-      .eq('email', userEmail)
-      .maybeSingle();
-
-    if (user) {
-      await supabase
-        .from('waitlist_users')
-        .update({
-          spin_points: Number(user.spin_points || 0) + Number(task.reward || 0),
-          balance_naira:
-            Number(user.balance_naira || 0) + Number(task.reward || 0),
-        })
-        .eq('email', userEmail);
-    }
-
     await supabase
       .from('tasks')
       .update({
@@ -204,7 +200,10 @@ export default function Tasks() {
     setActiveTask(null);
     setProof(null);
 
-    alert(`✅ Verified! You earned ${task.reward} Spin Points`);
+    alert(
+      '✅ Proof submitted. Your reward will be credited after admin approval.'
+    );
+
     fetchTasks();
   };
 
@@ -280,12 +279,18 @@ export default function Tasks() {
                   }`}
                 >
                   {done
-                    ? 'Completed'
+                    ? 'Submitted'
                     : timer > 0 && isActive
                     ? `Wait ${timer}s`
-                    : 'Confirm'}
+                    : 'Submit Proof'}
                 </button>
               </div>
+
+              {done && (
+                <p className="text-xs text-yellow-400 mt-2">
+                  ⏳ Submitted for admin review.
+                </p>
+              )}
             </div>
           );
         })}
