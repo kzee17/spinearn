@@ -1,10 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
 
 export default function WalletPlusJoinPage() {
+  const searchParams = useSearchParams();
+
   const [loading, setLoading] = useState(false);
+  const [referralCode, setReferralCode] = useState('');
+
+  useEffect(() => {
+    const ref = searchParams.get('ref');
+    if (ref) setReferralCode(ref);
+  }, [searchParams]);
 
   const activateWithPaystack = async () => {
     setLoading(true);
@@ -29,15 +38,14 @@ export default function WalletPlusJoinPage() {
 
     const response = await fetch('/api/wallet-plus/paystack-init', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email,
         amount: 1000,
         payment_type: 'wallet_activation',
         metadata: {
           purpose: 'Wallet+ membership activation',
+          referred_by: referralCode || null,
         },
       }),
     });
@@ -64,12 +72,20 @@ export default function WalletPlusJoinPage() {
           advance request, rewards, and Wallet+ features.
         </p>
 
+        <input
+          type="text"
+          placeholder="Referral Code (optional)"
+          value={referralCode}
+          onChange={(e) => setReferralCode(e.target.value)}
+          className="w-full mb-4 p-3 rounded bg-gray-900 border border-gray-700"
+        />
+
         <div className="bg-gray-900 p-5 rounded mb-6 text-left text-sm text-gray-300">
           <p className="mb-2">✅ Wallet+ membership activation</p>
           <p className="mb-2">✅ Access to savings plans</p>
           <p className="mb-2">✅ Access to advance request feature</p>
           <p className="mb-2">✅ Earn Spin Points from Wallet+ transactions</p>
-          <p>✅ Member-only platform benefits</p>
+          <p>✅ Referral reward eligibility</p>
         </div>
 
         <button

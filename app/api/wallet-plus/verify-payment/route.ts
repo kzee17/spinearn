@@ -77,18 +77,68 @@ export async function GET(req: Request) {
 
     // Wallet+ Activation
     if (paymentType === 'wallet_activation') {
-      await supabase.from('wallet_members').upsert({
-        user_email: email,
-        membership_paid: true,
-        agreed_to_policy: true,
-        membership_status: 'active',
-      });
+  const referredBy = meta.referred_by || null;
 
-      return NextResponse.redirect(
-        `${siteUrl}/wallet-plus/dashboard?payment=success`
-      );
+  const referralCode = `WP-${email
+    .split('@')[0]
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .slice(0, 6)
+    .toUpperCase()}-${Math.floor(Math.random() * 10000)}`;
+
+  await supabase.from('wallet_members').upsert({
+    user_email: email,
+    membership_paid: true,
+    agreed_to_policy: true,
+    membership_status: 'active',
+    referral_code: referralCode,
+    referred_by: referredBy,
+  });
+
+  if (referredBy) {
+    const { data: referrer } = await supabase
+      .from('wallet_members')
+      .select('*')
+      .eq('referral_code', referredBy)
+      .maybeSingle();
+
+    if (referrer) {
+      const { data: activeReferrals } = await supabase
+        .from('wallet_members')
+        .select('*')
+        .eq('referred_by', referredBy)
+        .eq('membership_status', 'active');
+
+      const referralCount = activeReferrals?.length || 0;
+
+      if (referralCount >= 5 && !referrer.referral_bonus_paid_5) {
+        await supabase
+          .from('wallet_members')
+          .update({
+            wallet_balance: Number(referrer.wallet_balance || 0) + 1000,
+            referral_bonus_paid_5: true,
+          })
+          .eq('user_email', referrer.user_email);
+      }
+
+      if (referralCount >= 10 && !referrer.referral_bonus_paid_10) {
+        await supabase
+          .from('wallet_members')
+          .update({
+            wallet_balance:
+              Number(referrer.wallet_balance || 0) +
+              (referrer.referral_bonus_paid_5 ? 2000 : 3000),
+            referral_bonus_paid_10: true,
+            referral_bonus_paid_5: true,
+          })
+          .eq('user_email', referrer.user_email);
+      }
     }
+  }
 
+  return NextResponse.redirect(
+    `${siteUrl}/wallet-plus/dashboard?payment=success`
+  );
+}
     // Savings Contribution
     if (paymentType === 'savings_contribution') {
       const savingsId = meta.savings_id;

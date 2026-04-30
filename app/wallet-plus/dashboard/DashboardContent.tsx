@@ -81,6 +81,10 @@ export default function DashboardContent() {
     (item) => item.status === 'pending' || item.status === 'approved'
   );
 
+  const referralLink = member?.referral_code
+    ? `https://spinbyte.app/wallet-plus/join?ref=${member.referral_code}`
+    : '';
+
   if (loading) {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -98,7 +102,7 @@ export default function DashboardContent() {
 
         <p className="text-gray-400 mt-2">
           Manage your Wallet+ membership, savings, advance requests,
-          repayments, and SpinEarn points.
+          repayments, referrals, and SpinEarn points.
         </p>
       </section>
 
@@ -168,6 +172,36 @@ export default function DashboardContent() {
             {Number(member.spin_points || 0).toLocaleString()} pts
           </h2>
         </div>
+
+        <div className="bg-gray-900 p-5 rounded md:col-span-4">
+          <p className="text-gray-400 text-sm">Referral Code</p>
+
+          <h2 className="text-xl font-bold">
+            {member.referral_code || 'Not generated yet'}
+          </h2>
+
+          {member.referral_code ? (
+            <div className="mt-2">
+              <p className="text-xs text-green-400 break-all">
+                {referralLink}
+              </p>
+
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(referralLink);
+                  alert('Referral link copied!');
+                }}
+                className="mt-3 bg-green-500 hover:bg-green-600 text-black px-4 py-2 rounded font-bold text-sm"
+              >
+                Copy Referral Link
+              </button>
+            </div>
+          ) : (
+            <p className="text-xs text-yellow-400 mt-2">
+              Your referral code will appear after Wallet+ activation.
+            </p>
+          )}
+        </div>
       </section>
 
       <section className="max-w-5xl mx-auto mb-8">
@@ -186,35 +220,59 @@ export default function DashboardContent() {
         <h2 className="text-2xl font-bold mb-4">🚀 Quick Actions</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <a href="/wallet-plus/join" className="bg-green-500 hover:bg-green-600 text-black px-4 py-3 rounded text-center font-bold">
+          <a
+            href="/wallet-plus/join"
+            className="bg-green-500 hover:bg-green-600 text-black px-4 py-3 rounded text-center font-bold"
+          >
             Activate Wallet+
           </a>
 
-          <a href="/wallet-plus/savings" className="bg-green-700 hover:bg-green-800 text-white px-4 py-3 rounded text-center font-bold">
+          <a
+            href="/wallet-plus/savings"
+            className="bg-green-700 hover:bg-green-800 text-white px-4 py-3 rounded text-center font-bold"
+          >
             Savings Contribution
           </a>
 
-          <a href="/wallet-plus/advance" className="bg-yellow-500 hover:bg-yellow-600 text-black px-4 py-3 rounded text-center font-bold">
+          <a
+            href="/wallet-plus/advance"
+            className="bg-yellow-500 hover:bg-yellow-600 text-black px-4 py-3 rounded text-center font-bold"
+          >
             Request Advance
           </a>
 
-          <a href="/wallet-plus/supporter" className="bg-orange-500 hover:bg-orange-600 text-black px-4 py-3 rounded text-center font-bold">
+          <a
+            href="/wallet-plus/supporter"
+            className="bg-orange-500 hover:bg-orange-600 text-black px-4 py-3 rounded text-center font-bold"
+          >
             Supporter Requests
           </a>
 
-          <a href="/wallet-plus/repay" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded text-center font-bold">
+          <a
+            href="/wallet-plus/repay"
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded text-center font-bold"
+          >
             Repay Advance
           </a>
 
-          <a href="/tasks" className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-3 rounded text-center font-bold">
+          <a
+            href="/tasks"
+            className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-3 rounded text-center font-bold"
+          >
             Earn More Spin Points
           </a>
 
-          <a href="/wallet" className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-3 rounded text-center font-bold">
+          <a
+            href="/wallet"
+            className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-3 rounded text-center font-bold"
+          >
             Main Wallet
           </a>
 
-          <a href="/leaderboard" className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-3 rounded text-center font-bold">
+          <a
+            href="/leaderboard"
+            className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-3 rounded text-center font-bold"
+          >
             View Leaderboard
           </a>
         </div>
@@ -248,15 +306,21 @@ export default function DashboardContent() {
                   </h3>
 
                   <p className="text-gray-400 text-sm">
-                    Amount: ₦{Number(item.saving_amount || 0).toLocaleString()} | Target: ₦{target.toLocaleString()}
+                    Amount: ₦
+                    {Number(item.saving_amount || 0).toLocaleString()} |
+                    Target: ₦{target.toLocaleString()}
                   </p>
 
                   <div className="w-full bg-gray-800 rounded h-3 my-2">
-                    <div className="bg-green-500 h-3 rounded" style={{ width: `${progress}%` }} />
+                    <div
+                      className="bg-green-500 h-3 rounded"
+                      style={{ width: `${progress}%` }}
+                    />
                   </div>
 
                   <p className="text-sm text-gray-400">
-                    Saved: ₦{saved.toLocaleString()} / ₦{target.toLocaleString()} ({progress.toFixed(1)}%)
+                    Saved: ₦{saved.toLocaleString()} / ₦
+                    {target.toLocaleString()} ({progress.toFixed(1)}%)
                   </p>
                 </div>
               );
@@ -287,16 +351,17 @@ export default function DashboardContent() {
                 </h3>
 
                 <p className="text-gray-400 text-sm">
-                  Service Fee: ₦{Number(item.service_fee || 0).toLocaleString()} | Total Settlement: ₦{Number(item.total_repay || 0).toLocaleString()}
+                  Service Fee: ₦
+                  {Number(item.service_fee || 0).toLocaleString()} | Total
+                  Settlement: ₦
+                  {Number(item.total_repay || 0).toLocaleString()}
                 </p>
 
                 <p className="text-gray-400 text-sm">
                   Duration: {item.repayment_months} months
                 </p>
 
-                <p className="text-gray-400 text-sm">
-                  Status: {item.status}
-                </p>
+                <p className="text-gray-400 text-sm">Status: {item.status}</p>
               </div>
             ))}
           </div>
