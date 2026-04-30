@@ -4,30 +4,46 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "SpinEarn – Fintech Engagement & Earning Platform",
   description:
-    "SpinEarn is a fintech-powered engagement platform enabling users to earn through digital tasks, referrals, and verified social interactions.",
+    "SpinEarn is a fintech-powered engagement platform enabling users to earn through digital tasks, referrals, Wallet+ membership, and verified social interactions.",
   keywords: [
     "SpinEarn",
     "Spinbyte",
     "earn money online Nigeria",
     "fintech platform Nigeria",
     "digital earning platform",
+    "Wallet Plus",
     "social engagement earning",
     "online income platform",
+    "advertising task platform",
   ],
   authors: [{ name: "Spinbyte International Ltd" }],
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/logo.png",
+  },
   openGraph: {
     title: "SpinEarn – Fintech Engagement Platform",
     description:
-      "Earn through digital tasks, referrals, and verified social engagement with SpinEarn.",
+      "Earn through digital tasks, referrals, Wallet+ membership, and verified social engagement with SpinEarn.",
     url: "https://spinbyte.app",
     siteName: "SpinEarn",
     type: "website",
+    images: [
+      {
+        url: "/logo.png",
+        width: 512,
+        height: 512,
+        alt: "SpinEarn Logo",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "SpinEarn – Earn Through Digital Engagement",
     description:
-      "A fintech-powered platform where users earn from tasks, referrals, and social interactions.",
+      "A fintech-powered platform where users earn from tasks, referrals, Wallet+ membership, and social interactions.",
+    images: ["/logo.png"],
   },
 };
 
