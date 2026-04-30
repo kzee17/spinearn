@@ -1,10 +1,17 @@
 import { Suspense } from 'react';
 import HomeContent from './HomeContent';
 
+export const dynamic = 'force-dynamic';
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <Suspense fallback={<div className="text-center mt-20">Loading...</div>}>
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-black text-white flex items-center justify-center">
+          Loading SpinEarn...
+        </main>
+      }
+    >
       <HomeContent />
     </Suspense>
   );
