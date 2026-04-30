@@ -243,7 +243,15 @@ export default function AdminDashboard() {
       alert(advanceUpdateError.message);
       return;
     }
-
+await supabase.from('notifications').insert([
+  {
+    user_email: advance.user_email,
+    title: 'Advance Approved',
+    message: `Your Wallet+ advance of ₦${Number(
+      advance.amount || 0
+    ).toLocaleString()} has been approved and credited.`,
+  },
+]);
     alert('✅ Advance approved and Wallet+ balance credited.');
     loadData();
   };

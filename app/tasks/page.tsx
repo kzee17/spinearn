@@ -8,7 +8,6 @@ export default function Tasks() {
   const [userEmail, setUserEmail] = useState('');
   const [completedTasks, setCompletedTasks] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [activeTask, setActiveTask] = useState<string | null>(null);
   const [timer, setTimer] = useState(0);
   const [proof, setProof] = useState<File | null>(null);
@@ -18,9 +17,7 @@ export default function Tasks() {
   }, []);
 
   const init = async () => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
       window.location.href = '/auth';
@@ -38,11 +35,7 @@ export default function Tasks() {
 
     if (!user) {
       await supabase.from('waitlist_users').insert([
-        {
-          email,
-          spin_points: 0,
-          balance_naira: 0,
-        },
+        { email, spin_points: 0, balance_naira: 0 },
       ]);
     }
 
@@ -59,7 +52,6 @@ export default function Tasks() {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Tasks fetch error:', error);
       alert(error.message);
       setTasks([]);
       return;
@@ -74,15 +66,13 @@ export default function Tasks() {
       .select('task_id')
       .eq('user_email', email);
 
-    const ids = data?.map((t: any) => t.task_id) || [];
-    setCompletedTasks(ids);
+    setCompletedTasks(data?.map((t: any) => t.task_id) || []);
   };
 
   const startTask = (taskId: string, link: string) => {
     setActiveTask(taskId);
     setTimer(10);
     setProof(null);
-
     window.open(link, '_blank');
 
     const interval = setInterval(() => {
@@ -91,7 +81,6 @@ export default function Tasks() {
           clearInterval(interval);
           return 0;
         }
-
         return prev - 1;
       });
     }, 1000);
@@ -104,11 +93,7 @@ export default function Tasks() {
       .from('proofs')
       .upload(filePath, file);
 
-    if (error) {
-      console.error('Proof upload error:', error);
-      return null;
-    }
-
+    if (error) return null;
     return filePath;
   };
 
@@ -151,20 +136,16 @@ export default function Tasks() {
     }
 
     let ip = '';
-
     try {
       const res = await fetch('https://api.ipify.org?format=json');
       const json = await res.json();
       ip = json.ip;
-    } catch {
-      ip = '';
-    }
+    } catch {}
 
-    const device = navigator.userAgent;
     const proofUrl = await uploadProof(proof);
 
     if (!proofUrl) {
-      alert('❌ Proof upload failed. Please try again.');
+      alert('❌ Proof upload failed.');
       return;
     }
 
@@ -179,7 +160,7 @@ export default function Tasks() {
         started_at: new Date(),
         completed_at: new Date(),
         ip_address: ip,
-        device_info: device,
+        device_info: navigator.userAgent,
         proof_url: proofUrl,
       },
     ]);
@@ -188,6 +169,15 @@ export default function Tasks() {
       alert(taskError.message);
       return;
     }
+
+    await supabase.from('notifications').insert([
+      {
+        user_email: userEmail,
+        title: 'Proof Submitted',
+        message:
+          'Your task proof has been submitted and is awaiting admin approval.',
+      },
+    ]);
 
     await supabase
       .from('tasks')
@@ -200,10 +190,7 @@ export default function Tasks() {
     setActiveTask(null);
     setProof(null);
 
-    alert(
-      '✅ Proof submitted. Your reward will be credited after admin approval.'
-    );
-
+    alert('✅ Proof submitted. Your reward will be credited after admin approval.');
     fetchTasks();
   };
 
@@ -240,12 +227,9 @@ export default function Tasks() {
                 Link: {task.link}
               </p>
 
-              {task.max_completions && (
-                <p className="text-xs text-gray-500 mb-2">
-                  Progress: {task.current_completions || 0}/
-                  {task.max_completions}
-                </p>
-              )}
+              <p className="text-xs text-gray-500 mb-2">
+                Progress: {task.current_completions || 0}/{task.max_completions || 100}
+              </p>
 
               {isActive && !done && (
                 <input

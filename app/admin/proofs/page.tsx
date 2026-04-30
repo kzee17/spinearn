@@ -12,9 +12,7 @@ export default function AdminProofsPage() {
   }, []);
 
   const checkAdminAndLoadProofs = async () => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
       alert('Please login first');
@@ -55,8 +53,6 @@ export default function AdminProofsPage() {
   };
 
   const getProofUrl = (proofUrl: string) => {
-    if (!proofUrl) return '';
-
     return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/proofs/${proofUrl.replace(
       'proofs/',
       ''
@@ -71,21 +67,11 @@ export default function AdminProofsPage() {
 
     const reward = Number(proof.reward_amount || 0);
 
-    if (reward <= 0) {
-      alert('Invalid reward amount.');
-      return;
-    }
-
-    const { data: user, error: userError } = await supabase
+    const { data: user } = await supabase
       .from('waitlist_users')
       .select('*')
       .eq('email', proof.user_email)
       .maybeSingle();
-
-    if (userError) {
-      alert(userError.message);
-      return;
-    }
 
     if (!user) {
       alert('User not found.');
@@ -118,13 +104,20 @@ export default function AdminProofsPage() {
       return;
     }
 
+    await supabase.from('notifications').insert([
+      {
+        user_email: proof.user_email,
+        title: 'Proof Approved',
+        message: `Your proof was approved and ${reward} Spin Points have been credited.`,
+      },
+    ]);
+
     alert('✅ Proof approved and wallet credited.');
     loadProofs();
   };
 
-  const rejectProof = async (proofId: string) => {
+  const rejectProof = async (proof: any) => {
     const confirmReject = confirm('Reject this proof submission?');
-
     if (!confirmReject) return;
 
     const { error } = await supabase
@@ -133,12 +126,21 @@ export default function AdminProofsPage() {
         proof_status: 'rejected',
         credited: false,
       })
-      .eq('id', proofId);
+      .eq('id', proof.id);
 
     if (error) {
       alert(error.message);
       return;
     }
+
+    await supabase.from('notifications').insert([
+      {
+        user_email: proof.user_email,
+        title: 'Proof Rejected',
+        message:
+          'Your task proof was rejected. Please submit valid proof next time.',
+      },
+    ]);
 
     alert('❌ Proof rejected.');
     loadProofs();
@@ -155,13 +157,10 @@ export default function AdminProofsPage() {
   return (
     <main className="min-h-screen bg-black text-white px-6 py-10">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-3">
-          🛡️ Admin Proof Validation
-        </h1>
+        <h1 className="text-3xl font-bold mb-3">🛡️ Admin Proof Validation</h1>
 
         <p className="text-gray-400 mb-8">
-          Review task proofs before rewarding users. Wallet credit is only given
-          after approval.
+          Review task proofs before rewarding users.
         </p>
 
         {proofs.length === 0 ? (
@@ -175,23 +174,14 @@ export default function AdminProofsPage() {
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                   <div>
                     <h2 className="font-bold">{proof.user_email}</h2>
-
-                    <p className="text-sm text-gray-400">
-                      Task ID: {proof.task_id}
-                    </p>
-
+                    <p className="text-sm text-gray-400">Task ID: {proof.task_id}</p>
                     <p className="text-sm text-gray-400">
                       Reward: {Number(proof.reward_amount || 0)} Spin Points
                     </p>
-
-                    <p className="text-sm text-gray-400">
-                      IP: {proof.ip_address || 'N/A'}
-                    </p>
-
+                    <p className="text-sm text-gray-400">IP: {proof.ip_address || 'N/A'}</p>
                     <p className="text-sm text-gray-400">
                       Status: {proof.proof_status || 'pending'}
                     </p>
-
                     <p className="text-sm text-gray-400">
                       Credited: {proof.credited ? 'Yes' : 'No'}
                     </p>
@@ -219,9 +209,7 @@ export default function AdminProofsPage() {
                     View Uploaded Proof
                   </a>
                 ) : (
-                  <p className="text-yellow-400 text-sm mt-4">
-                    No proof uploaded.
-                  </p>
+                  <p className="text-yellow-400 text-sm mt-4">No proof uploaded.</p>
                 )}
 
                 {proof.proof_status !== 'approved' &&
@@ -235,7 +223,7 @@ export default function AdminProofsPage() {
                       </button>
 
                       <button
-                        onClick={() => rejectProof(proof.id)}
+                        onClick={() => rejectProof(proof)}
                         className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded font-bold"
                       >
                         Reject
@@ -246,22 +234,6 @@ export default function AdminProofsPage() {
             ))}
           </div>
         )}
-
-        <div className="mt-8 flex gap-3">
-          <a
-            href="/admin"
-            className="bg-gray-800 hover:bg-gray-700 px-4 py-3 rounded font-bold"
-          >
-            Back to Admin Dashboard
-          </a>
-
-          <a
-            href="/tasks"
-            className="bg-purple-500 hover:bg-purple-600 px-4 py-3 rounded font-bold"
-          >
-            View Tasks
-          </a>
-        </div>
       </div>
     </main>
   );
