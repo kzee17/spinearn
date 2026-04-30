@@ -411,6 +411,9 @@ export default function HomeContent() {
             <a href="/wallet-plus" className="hover:text-green-400">Wallet+</a>
             <a href="/advertise" className="hover:text-green-400">Advertise</a>
             <a href="/admin" className="hover:text-green-400">Admin</a>
+            <a href="/terms" className="hover:text-green-400">Terms</a>
+            <a href="/privacy" className="hover:text-green-400">Privacy</a>
+            <a href="/advertiser-terms" className="hover:text-green-400">Advertiser Terms</a>
           </div>
         </div>
       </footer>
