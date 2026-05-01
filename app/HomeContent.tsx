@@ -9,6 +9,7 @@ export default function HomeContent() {
 
   const [ref, setRef] = useState('');
   const [userCount, setUserCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -21,6 +22,24 @@ export default function HomeContent() {
     if (referral) setRef(referral);
   }, [searchParams]);
 
+  useEffect(() => {
+  fetchUnread();
+}, []);
+
+const fetchUnread = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+
+  const email = session.user.email;
+
+  const { data } = await supabase
+    .from('notifications')
+    .select('*')
+    .eq('user_email', email)
+    .eq('status', 'unread');
+
+  setUnreadCount(data?.length || 0);
+};
   useEffect(() => {
     fetchUserCount();
   }, []);
@@ -114,6 +133,10 @@ export default function HomeContent() {
             <a href="/tasks" className="hover:text-green-400">Tasks</a>
             <a href="/advertise" className="hover:text-green-400">Advertise</a>
             <a href="/leaderboard" className="hover:text-green-400">Leaderboard</a>
+            <a href="/notifications"className="relative bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded text-sm"
+>  🔔{unreadCount > 0 && (<span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+      {unreadCount}</span>)}
+          </a>
           </nav>
 
           <div className="flex gap-2">
@@ -218,7 +241,7 @@ export default function HomeContent() {
               type="submit"
               className="w-full bg-green-500 hover:bg-green-600 text-black py-3 rounded font-bold"
             >
-              Join Waitlist 🚀
+              Join Now 🚀
             </button>
           </form>
 
