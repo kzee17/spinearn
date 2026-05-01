@@ -284,17 +284,7 @@ setUnreadCount(notif?.length || 0);
           >
             View Leaderboard
           </a>
-        </div>
-      </section>
-
-      <section className="max-w-5xl mx-auto mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold">💰 Savings Plans</h2>
-          <p className="text-gray-400 text-sm">
-            Target Total: ₦{totalTargets.toLocaleString()}
-          </p>
-        </div>
-<div className="bg-gray-900 p-5 rounded">
+          <div className="bg-gray-900 p-5 rounded">
   <p className="text-gray-400 text-sm">Notifications</p>
 
   <h2 className="text-xl font-bold">{unreadCount} Unread</h2>
@@ -306,6 +296,16 @@ setUnreadCount(notif?.length || 0);
     View Notifications
   </a>
 </div>
+        </div>
+      </section>
+
+      <section className="max-w-5xl mx-auto mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold">💰 Savings Plans</h2>
+          <p className="text-gray-400 text-sm">
+            Target Total: ₦{totalTargets.toLocaleString()}
+          </p>
+        </div>
         {savings.length === 0 ? (
           <div className="bg-gray-900 p-5 rounded text-gray-400">
             No savings plan yet. Click <strong>Savings Contribution</strong> to
@@ -343,6 +343,7 @@ setUnreadCount(notif?.length || 0);
                     {target.toLocaleString()} ({progress.toFixed(1)}%)
                   </p>
                 </div>
+                
               );
             })}
           </div>
