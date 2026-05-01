@@ -12,10 +12,13 @@ export default function DashboardContent() {
   const [savings, setSavings] = useState<any[]>([]);
   const [advances, setAdvances] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     loadDashboard();
   }, []);
+
+  
 
   const loadDashboard = async () => {
     const {
@@ -29,6 +32,7 @@ export default function DashboardContent() {
     }
 
     const email = session.user.email;
+    
 
     const { data: memberData, error: memberError } = await supabase
       .from('wallet_members')
@@ -48,7 +52,13 @@ export default function DashboardContent() {
       window.location.href = '/wallet-plus/policy';
       return;
     }
+const { data: notif } = await supabase
+  .from('notifications')
+  .select('*')
+  .eq('user_email', email)
+  .eq('status', 'unread');
 
+setUnreadCount(notif?.length || 0);
     const { data: savingsData } = await supabase
       .from('wallet_savings')
       .select('*')
@@ -218,8 +228,7 @@ export default function DashboardContent() {
 
       <section className="max-w-5xl mx-auto mb-8">
         <h2 className="text-2xl font-bold mb-4">🚀 Quick Actions</h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <a
             href="/wallet-plus/join"
             className="bg-green-500 hover:bg-green-600 text-black px-4 py-3 rounded text-center font-bold"
@@ -285,7 +294,18 @@ export default function DashboardContent() {
             Target Total: ₦{totalTargets.toLocaleString()}
           </p>
         </div>
+<div className="bg-gray-900 p-5 rounded">
+  <p className="text-gray-400 text-sm">Notifications</p>
 
+  <h2 className="text-xl font-bold">{unreadCount} Unread</h2>
+
+  <a
+    href="/notifications"
+    className="text-green-400 text-sm underline mt-2 inline-block"
+  >
+    View Notifications
+  </a>
+</div>
         {savings.length === 0 ? (
           <div className="bg-gray-900 p-5 rounded text-gray-400">
             No savings plan yet. Click <strong>Savings Contribution</strong> to
