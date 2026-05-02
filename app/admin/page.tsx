@@ -138,22 +138,32 @@ export default function AdminDashboard() {
   const fraudIPs = detectFraudIPs();
 
   const approveWithdrawal = async (id: string) => {
-    const confirmApproval = confirm('Approve this withdrawal request?');
-    if (!confirmApproval) return;
+  const confirmApproval = confirm(
+    'Approve this withdrawal and process Paystack payout?'
+  );
 
-    const { error } = await supabase
-      .from('withdrawals')
-      .update({ status: 'approved' })
-      .eq('id', id);
+  if (!confirmApproval) return;
 
-    if (error) {
-      alert(error.message);
-      return;
-    }
+  const response = await fetch('/api/withdrawals/paystack-transfer', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      withdrawal_id: id,
+    }),
+  });
 
-    alert('✅ Withdrawal approved.');
-    loadData();
-  };
+  const data = await response.json();
+
+  if (!response.ok) {
+    alert(data.error || 'Withdrawal payout failed');
+    return;
+  }
+
+  alert('✅ Withdrawal approved and payout initiated.');
+  loadData();
+};
 
   const rejectWithdrawal = async (id: string) => {
     const confirmReject = confirm('Reject this withdrawal request?');
