@@ -119,19 +119,35 @@ export default function Tasks() {
   };
 
   const uploadProof = async (file: File) => {
-    const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const filePath = `proofs/${Date.now()}-${safeFileName}`;
+    try {
+      if (!file) {
+        alert('Please select a proof screenshot.');
+        return null;
+      }
 
-    const { error } = await supabase.storage
-      .from('proofs')
-      .upload(filePath, file);
+      const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const filePath = `${Date.now()}-${safeFileName}`;
 
-    if (error) {
-      console.error('Proof upload error:', error);
+      const { error } = await supabase.storage
+        .from('proofs')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: file.type || 'image/png',
+        });
+
+      if (error) {
+        console.error('Proof upload error:', error);
+        alert(error.message);
+        return null;
+      }
+
+      return filePath;
+    } catch (error: any) {
+      console.error('Proof upload failed:', error);
+      alert(error.message || 'Proof upload failed.');
       return null;
     }
-
-    return filePath;
   };
 
   const completeTask = async (task: any) => {

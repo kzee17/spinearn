@@ -57,9 +57,7 @@ export default function AdminProofsPage() {
   const getProofUrl = (proofUrl: string) => {
     if (!proofUrl) return '#';
 
-    const cleanPath = proofUrl.replace(/^proofs\//, '');
-
-    return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/proofs/${cleanPath}`;
+    return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/proofs/${proofUrl}`;
   };
 
   const approveProof = async (proof: any) => {
@@ -177,12 +175,20 @@ export default function AdminProofsPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <a href="/admin" className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded">
+            <a
+              href="/admin"
+              className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded"
+            >
               Admin Home
             </a>
-            <a href="/admin/fraud" className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded font-bold">
+
+            <a
+              href="/admin/fraud"
+              className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded font-bold"
+            >
               Fraud
             </a>
+
             <button
               onClick={handleLogout}
               className="bg-red-900 hover:bg-red-800 px-4 py-2 rounded font-bold"
