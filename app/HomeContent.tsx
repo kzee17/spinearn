@@ -10,6 +10,7 @@ export default function HomeContent() {
   const [ref, setRef] = useState('');
   const [userCount, setUserCount] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [sessionUser, setSessionUser] = useState<any>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -20,29 +21,42 @@ export default function HomeContent() {
   useEffect(() => {
     const referral = searchParams.get('ref');
     if (referral) setRef(referral);
+
+    checkSession();
+    fetchUserCount();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(() => {
+      checkSession();
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   }, [searchParams]);
 
-  useEffect(() => {
-  fetchUnread();
-}, []);
+  const checkSession = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
-const fetchUnread = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return;
+    setSessionUser(session?.user || null);
 
-  const email = session.user.email;
+    if (session?.user?.email) {
+      fetchUnread(session.user.email);
+    } else {
+      setUnreadCount(0);
+    }
+  };
 
-  const { data } = await supabase
-    .from('notifications')
-    .select('*')
-    .eq('user_email', email)
-    .eq('status', 'unread');
+  const fetchUnread = async (email: string) => {
+    const { data } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_email', email)
+      .eq('status', 'unread');
 
-  setUnreadCount(data?.length || 0);
-};
-  useEffect(() => {
-    fetchUserCount();
-  }, []);
+    setUnreadCount(data?.length || 0);
+  };
 
   const fetchUserCount = async () => {
     const { count } = await supabase
@@ -50,6 +64,14 @@ const fetchUnread = async () => {
       .select('*', { count: 'exact', head: true });
 
     setUserCount(count || 0);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setSessionUser(null);
+    setUnreadCount(0);
+    alert('You have logged out successfully.');
+    window.location.href = '/';
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,17 +108,19 @@ const fetchUnread = async () => {
         return;
       }
 
-      const { error: insertError } = await supabase.from('waitlist_users').insert([
-        {
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          referral_code: referralCode,
-          referred_by: ref || null,
-          spin_points: 0,
-          balance_naira: 0,
-        },
-      ]);
+      const { error: insertError } = await supabase
+        .from('waitlist_users')
+        .insert([
+          {
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            referral_code: referralCode,
+            referred_by: ref || null,
+            spin_points: 0,
+            balance_naira: 0,
+          },
+        ]);
 
       if (insertError) {
         alert(insertError.message);
@@ -128,24 +152,71 @@ const fetchUnread = async () => {
           </a>
 
           <nav className="hidden md:flex items-center gap-5 text-sm">
-            <a href="#how" className="hover:text-green-400">How it Works</a>
-            <a href="#walletplus" className="hover:text-green-400">Wallet+</a>
-            <a href="/tasks" className="hover:text-green-400">Tasks</a>
-            <a href="/advertise" className="hover:text-green-400">Advertise</a>
-            <a href="/leaderboard" className="hover:text-green-400">Leaderboard</a>
-            <a href="/notifications"className="relative bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded text-sm"
->  🔔{unreadCount > 0 && (<span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-      {unreadCount}</span>)}
-          </a>
+            <a href="#how" className="hover:text-green-400">
+              How it Works
+            </a>
+            <a href="#walletplus" className="hover:text-green-400">
+              Wallet+
+            </a>
+            <a href="/tasks" className="hover:text-green-400">
+              Tasks
+            </a>
+            <a href="/advertise" className="hover:text-green-400">
+              Advertise
+            </a>
+            <a href="/leaderboard" className="hover:text-green-400">
+              Leaderboard
+            </a>
+
+            {sessionUser && (
+              <a
+                href="/notifications"
+                className="relative bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded text-sm"
+              >
+                🔔
+                {unreadCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                    {unreadCount}
+                  </span>
+                )}
+              </a>
+            )}
           </nav>
 
-          <div className="flex gap-2">
-            <a
-              href="/auth"
-              className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded text-sm"
-            >
-              Login
-            </a>
+          <div className="flex gap-2 items-center">
+            {sessionUser ? (
+              <>
+                <a
+                  href="/wallet"
+                  className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded text-sm font-bold"
+                >
+                  Wallet
+                </a>
+
+                <button
+                  onClick={handleLogout}
+                  className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded text-sm font-bold"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <a
+                  href="/auth"
+                  className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded text-sm"
+                >
+                  Login
+                </a>
+
+                <a
+                  href="/admin"
+                  className="bg-purple-500 hover:bg-purple-600 px-4 py-2 rounded text-sm font-bold"
+                >
+                  Admin Login
+                </a>
+              </>
+            )}
 
             <a
               href="/wallet-plus"
@@ -246,7 +317,17 @@ const fetchUnread = async () => {
           </form>
 
           <p className="text-xs text-gray-500 mt-4">
-            Already registered? <a href="/auth" className="text-green-400 underline">Login here</a>
+            Already registered?{' '}
+            <a href="/auth" className="text-green-400 underline">
+              Login here
+            </a>
+          </p>
+
+          <p className="text-xs text-gray-500 mt-2">
+            Platform manager?{' '}
+            <a href="/admin" className="text-purple-400 underline">
+              Admin Login
+            </a>
           </p>
         </div>
       </section>
@@ -290,7 +371,9 @@ const fetchUnread = async () => {
           </div>
 
           <div className="bg-gray-900 p-6 rounded-xl">
-            <h3 className="text-xl font-bold mb-3">2. Complete Verified Tasks</h3>
+            <h3 className="text-xl font-bold mb-3">
+              2. Complete Verified Tasks
+            </h3>
             <p className="text-gray-400">
               Follow pages, visit links, like content, upload proof, and earn
               Spin Points after admin validation.
@@ -408,6 +491,13 @@ const fetchUnread = async () => {
             </a>
 
             <a
+              href="/admin"
+              className="bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded font-bold"
+            >
+              Admin Login
+            </a>
+
+            <a
               href="/wallet-plus"
               className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded font-bold"
             >
@@ -427,16 +517,32 @@ const fetchUnread = async () => {
       {/* FOOTER */}
       <footer className="border-t border-gray-800 py-8">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between gap-4 text-sm text-gray-400">
-          <p>© {new Date().getFullYear()} SpinEarn by Spinbyte International Ltd.</p>
+          <p>
+            © {new Date().getFullYear()} SpinEarn by Spinbyte International Ltd.
+          </p>
 
-          <div className="flex gap-4">
-            <a href="/tasks" className="hover:text-green-400">Tasks</a>
-            <a href="/wallet-plus" className="hover:text-green-400">Wallet+</a>
-            <a href="/advertise" className="hover:text-green-400">Advertise</a>
-            <a href="/admin" className="hover:text-green-400">Admin</a>
-            <a href="/terms" className="hover:text-green-400">Terms</a>
-            <a href="/privacy" className="hover:text-green-400">Privacy</a>
-            <a href="/advertiser-terms" className="hover:text-green-400">Advertiser Terms</a>
+          <div className="flex flex-wrap gap-4">
+            <a href="/tasks" className="hover:text-green-400">
+              Tasks
+            </a>
+            <a href="/wallet-plus" className="hover:text-green-400">
+              Wallet+
+            </a>
+            <a href="/advertise" className="hover:text-green-400">
+              Advertise
+            </a>
+            <a href="/admin" className="hover:text-green-400">
+              Admin Login
+            </a>
+            <a href="/terms" className="hover:text-green-400">
+              Terms
+            </a>
+            <a href="/privacy" className="hover:text-green-400">
+              Privacy
+            </a>
+            <a href="/advertiser-terms" className="hover:text-green-400">
+              Advertiser Terms
+            </a>
           </div>
         </div>
       </footer>

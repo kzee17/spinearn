@@ -14,12 +14,37 @@ export default function WalletPage() {
   const [bankCode, setBankCode] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [accountName, setAccountName] = useState('');
+  const [banks, setBanks] = useState<any[]>([]);
+  const [banksLoading, setBanksLoading] = useState(false);
 
   useEffect(() => {
     loadWallet();
+    loadBanks();
   }, []);
 
+  const loadBanks = async () => {
+    try {
+      setBanksLoading(true);
+
+      const response = await fetch('/api/banks/paystack');
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error(data?.error || 'Failed to load banks');
+        return;
+      }
+
+      setBanks(data.banks || []);
+    } catch (error) {
+      console.error('Failed to load banks:', error);
+    } finally {
+      setBanksLoading(false);
+    }
+  };
+
   const loadWallet = async () => {
+    setLoading(true);
+
     const {
       data: { session },
     } = await supabase.auth.getSession();
@@ -50,15 +75,26 @@ export default function WalletPage() {
       return;
     }
 
-    const { data: withdrawalData } = await supabase
+    const { data: withdrawalData, error: withdrawalError } = await supabase
       .from('withdrawals')
       .select('*')
       .eq('user_email', email)
       .order('created_at', { ascending: false });
 
+    if (withdrawalError) {
+      alert(withdrawalError.message);
+    }
+
     setUser(userData);
     setWithdrawals(withdrawalData || []);
     setLoading(false);
+  };
+
+  const handleBankChange = (selectedCode: string) => {
+    const selectedBank = banks.find((bank) => bank.code === selectedCode);
+
+    setBankCode(selectedCode);
+    setBankName(selectedBank?.name || '');
   };
 
   const submitWithdrawal = async () => {
@@ -89,7 +125,7 @@ export default function WalletPage() {
       return;
     }
 
-    if (accountNumber.length < 10) {
+    if (accountNumber.length !== 10) {
       alert('Please enter a valid 10-digit account number.');
       return;
     }
@@ -174,7 +210,7 @@ export default function WalletPage() {
             <p className="text-gray-400 text-sm">Fraud Status</p>
             <h2
               className={`text-2xl font-bold capitalize ${
-                user.fraud_status === 'clear'
+                user.fraud_status === 'clear' || !user.fraud_status
                   ? 'text-green-400'
                   : 'text-red-400'
               }`}
@@ -196,27 +232,46 @@ export default function WalletPage() {
               className="w-full p-3 rounded bg-black border border-gray-700"
             />
 
+            <select
+              value={bankCode}
+              onChange={(e) => handleBankChange(e.target.value)}
+              className="w-full p-3 rounded bg-black border border-gray-700"
+            >
+              <option value="">
+                {banksLoading ? 'Loading banks...' : 'Select Nigerian Bank'}
+              </option>
+
+              {banks.map((bank) => (
+                <option key={bank.code} value={bank.code}>
+                  {bank.name} - {bank.code}
+                </option>
+              ))}
+            </select>
+
             <input
               type="text"
-              placeholder="Bank Name e.g. Access Bank"
-              value={bankName}
-              onChange={(e) => setBankName(e.target.value)}
-              className="w-full p-3 rounded bg-black border border-gray-700"
+              placeholder="Bank Code"
+              value={bankCode}
+              readOnly
+              className="w-full p-3 rounded bg-gray-800 border border-gray-700 text-gray-300"
             />
 
             <input
               type="text"
-              placeholder="Bank Code e.g. 044"
-              value={bankCode}
-              onChange={(e) => setBankCode(e.target.value)}
-              className="w-full p-3 rounded bg-black border border-gray-700"
+              placeholder="Bank Name"
+              value={bankName}
+              readOnly
+              className="w-full p-3 rounded bg-gray-800 border border-gray-700 text-gray-300"
             />
 
             <input
               type="text"
               placeholder="Account Number"
               value={accountNumber}
-              onChange={(e) => setAccountNumber(e.target.value)}
+              maxLength={10}
+              onChange={(e) =>
+                setAccountNumber(e.target.value.replace(/\D/g, ''))
+              }
               className="w-full p-3 rounded bg-black border border-gray-700"
             />
 
@@ -225,7 +280,7 @@ export default function WalletPage() {
               placeholder="Account Name"
               value={accountName}
               onChange={(e) => setAccountName(e.target.value)}
-              className="w-full p-3 rounded bg-black border border-gray-700 md:col-span-2"
+              className="w-full p-3 rounded bg-black border border-gray-700"
             />
           </div>
 
@@ -240,7 +295,7 @@ export default function WalletPage() {
           <button
             onClick={submitWithdrawal}
             disabled={submitting}
-            className="mt-4 w-full bg-green-500 hover:bg-green-600 text-black py-3 rounded font-bold"
+            className="mt-4 w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-black py-3 rounded font-bold"
           >
             {submitting ? 'Submitting...' : 'Submit Withdrawal Request'}
           </button>
@@ -264,7 +319,10 @@ export default function WalletPage() {
                       </h3>
 
                       <p className="text-gray-400 text-sm">
-                        Bank: {withdrawal.bank_name || 'N/A'}
+                        Bank: {withdrawal.bank_name || 'N/A'}{' '}
+                        {withdrawal.bank_code
+                          ? `(${withdrawal.bank_code})`
+                          : ''}
                       </p>
 
                       <p className="text-gray-400 text-sm">
