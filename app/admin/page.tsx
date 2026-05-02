@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 
+const ADMIN_EMAIL = 'engrlawalko@gmail.com';
+
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [adminEmail, setAdminEmail] = useState('');
@@ -30,23 +32,12 @@ export default function AdminDashboard() {
       return;
     }
 
-    const email = session.user.email || '';
+    const email = (session.user.email || '').toLowerCase().trim();
     setAdminEmail(email);
 
-    const { data: adminData, error: adminError } = await supabase
-      .from('admins')
-      .select('*')
-      .eq('email', email)
-      .maybeSingle();
-
-    if (adminError) {
-      alert(adminError.message);
-      window.location.href = '/';
-      return;
-    }
-
-    if (!adminData) {
+    if (email !== ADMIN_EMAIL) {
       alert('Access denied. This account is not an admin.');
+      await supabase.auth.signOut();
       window.location.href = '/';
       return;
     }
@@ -300,7 +291,6 @@ export default function AdminDashboard() {
 
   return (
     <main className="min-h-screen bg-black text-white">
-      {/* TOP NAV */}
       <header className="sticky top-0 z-50 bg-black/95 border-b border-gray-800 backdrop-blur">
         <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
@@ -339,7 +329,6 @@ export default function AdminDashboard() {
       </header>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* HERO */}
         <section className="mb-8 bg-gray-900 border border-gray-800 rounded-2xl p-6">
           <h2 className="text-3xl md:text-4xl font-bold mb-2">
             Admin Control Centre
@@ -350,7 +339,6 @@ export default function AdminDashboard() {
           </p>
         </section>
 
-        {/* QUICK ACCESS */}
         <section className="mb-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <a href="/admin/proofs" className="bg-green-500 hover:bg-green-600 text-black p-5 rounded-xl font-bold">
             ✅ Review Task Proofs
@@ -381,7 +369,6 @@ export default function AdminDashboard() {
           </a>
         </section>
 
-        {/* ANALYTICS CARDS */}
         <section className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10">
           <div className="bg-gray-900 border border-gray-800 p-5 rounded-xl">
             <p className="text-gray-400 text-sm">Total Users</p>
@@ -446,7 +433,6 @@ export default function AdminDashboard() {
           </div>
         </section>
 
-        {/* WITHDRAWALS */}
         <section className="mb-10">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold">💰 Withdrawal Requests</h2>
@@ -513,7 +499,6 @@ export default function AdminDashboard() {
           )}
         </section>
 
-        {/* WALLET ADVANCES */}
         <section className="mb-10">
           <h2 className="text-2xl font-bold mb-4">💳 Wallet+ Advance Requests</h2>
 
@@ -576,7 +561,6 @@ export default function AdminDashboard() {
           )}
         </section>
 
-        {/* FRAUD */}
         <section className="mb-10">
           <h2 className="text-2xl font-bold text-red-400 mb-4">
             🚨 Fraud / Suspicious Activity
@@ -600,7 +584,6 @@ export default function AdminDashboard() {
           )}
         </section>
 
-        {/* REPAYMENTS */}
         <section className="mb-10">
           <h2 className="text-2xl font-bold mb-4">💵 Recent Advance Repayments</h2>
 
@@ -624,7 +607,6 @@ export default function AdminDashboard() {
           )}
         </section>
 
-        {/* USERS */}
         <section className="mb-10">
           <h2 className="text-2xl font-bold mb-4">👥 Recent Users</h2>
 
