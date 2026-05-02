@@ -328,6 +328,12 @@ await supabase.from('notifications').insert([
           >
             View Tasks
           </a>
+          <a
+  href="/admin/fraud"
+  className="bg-red-500 hover:bg-red-600 text-white px-4 py-3 rounded text-center font-bold"
+>
+  Fraud Monitoring
+</a>
         </div>
       </section>
 
