@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 
 const ADMIN_EMAIL = 'engrlawalko@gmail.com';
+const TASK_REWARD = 5;
 
 export default function AdminProofsPage() {
   const [proofs, setProofs] = useState<any[]>([]);
@@ -66,14 +67,15 @@ export default function AdminProofsPage() {
       return;
     }
 
-    const confirmApprove = confirm('Approve this proof and credit user wallet?');
-    if (!confirmApprove) return;
+    const confirmApprove = confirm(
+      `Approve this proof and credit ${TASK_REWARD} Spin Points?`
+    );
 
-    const reward = Number(proof.reward_amount || 0);
+    if (!confirmApprove) return;
 
     const { data: user, error: userError } = await supabase
       .from('waitlist_users')
-      .select('*')
+      .select('email, spin_points, balance_naira')
       .eq('email', proof.user_email)
       .maybeSingle();
 
@@ -82,16 +84,19 @@ export default function AdminProofsPage() {
       return;
     }
 
+    const newSpinPoints = Number(user.spin_points || 0) + TASK_REWARD;
+    const newBalance = Number(user.balance_naira || 0) + TASK_REWARD;
+
     const { error: walletError } = await supabase
       .from('waitlist_users')
       .update({
-        spin_points: Number(user.spin_points || 0) + reward,
-        balance_naira: Number(user.balance_naira || 0) + reward,
+        spin_points: newSpinPoints,
+        balance_naira: newBalance,
       })
       .eq('email', proof.user_email);
 
     if (walletError) {
-      alert(walletError.message);
+      alert(`Wallet credit failed: ${walletError.message}`);
       return;
     }
 
@@ -100,11 +105,12 @@ export default function AdminProofsPage() {
       .update({
         proof_status: 'approved',
         credited: true,
+        reward_amount: TASK_REWARD,
       })
       .eq('id', proof.id);
 
     if (proofError) {
-      alert(proofError.message);
+      alert(`Proof update failed: ${proofError.message}`);
       return;
     }
 
@@ -112,11 +118,11 @@ export default function AdminProofsPage() {
       {
         user_email: proof.user_email,
         title: 'Proof Approved',
-        message: `Your proof was approved and ${reward} Spin Points have been credited.`,
+        message: `Your proof was approved and ${TASK_REWARD} Spin Points have been credited.`,
       },
     ]);
 
-    alert('✅ Proof approved and wallet credited.');
+    alert(`✅ Proof approved. ${TASK_REWARD} Spin Points credited.`);
     loadProofs();
   };
 
@@ -129,6 +135,7 @@ export default function AdminProofsPage() {
       .update({
         proof_status: 'rejected',
         credited: false,
+        reward_amount: TASK_REWARD,
       })
       .eq('id', proof.id);
 
@@ -175,17 +182,11 @@ export default function AdminProofsPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <a
-              href="/admin"
-              className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded"
-            >
+            <a href="/admin" className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded">
               Admin Home
             </a>
 
-            <a
-              href="/admin/fraud"
-              className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded font-bold"
-            >
+            <a href="/admin/fraud" className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded font-bold">
               Fraud
             </a>
 
@@ -199,7 +200,8 @@ export default function AdminProofsPage() {
         </div>
 
         <p className="text-gray-400 mb-8">
-          Review task proofs before rewarding users.
+          Review task proofs before rewarding users. Each approved proof gives
+          the user <strong>{TASK_REWARD} Spin Points</strong>.
         </p>
 
         {proofs.length === 0 ? (
@@ -219,7 +221,7 @@ export default function AdminProofsPage() {
                     </p>
 
                     <p className="text-sm text-gray-400">
-                      Reward: {Number(proof.reward_amount || 0)} Spin Points
+                      Reward: {Number(proof.reward_amount || TASK_REWARD)} Spin Points
                     </p>
 
                     <p className="text-sm text-gray-400">
@@ -274,7 +276,7 @@ export default function AdminProofsPage() {
                         onClick={() => approveProof(proof)}
                         className="bg-green-500 hover:bg-green-600 text-black px-4 py-2 rounded font-bold"
                       >
-                        Approve & Credit
+                        Approve & Credit {TASK_REWARD} Points
                       </button>
 
                       <button

@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 
+const TASK_REWARD = 5;
+
 export default function Tasks() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [userEmail, setUserEmail] = useState('');
@@ -18,13 +20,9 @@ export default function Tasks() {
 
   const normalizeUrl = (url: string) => {
     if (!url) return '';
-
     const trimmedUrl = url.trim();
 
-    if (
-      trimmedUrl.startsWith('http://') ||
-      trimmedUrl.startsWith('https://')
-    ) {
+    if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) {
       return trimmedUrl;
     }
 
@@ -137,14 +135,12 @@ export default function Tasks() {
         });
 
       if (error) {
-        console.error('Proof upload error:', error);
         alert(error.message);
         return null;
       }
 
       return filePath;
     } catch (error: any) {
-      console.error('Proof upload failed:', error);
       alert(error.message || 'Proof upload failed.');
       return null;
     }
@@ -218,9 +214,7 @@ export default function Tasks() {
     }
 
     if (fraudResult.fraud_status === 'blocked') {
-      alert(
-        '⚠️ Your account has been flagged for suspicious activity. Contact support.'
-      );
+      alert('⚠️ Your account has been flagged for suspicious activity.');
       return;
     }
 
@@ -237,12 +231,12 @@ export default function Tasks() {
         task_id: task.id,
         status: 'completed',
         proof_status: 'pending',
-        reward_amount: Number(task.reward || 0),
+        reward_amount: TASK_REWARD,
         credited: false,
         fraud_score: fraudResult.fraud_score || 0,
         fraud_flags: fraudResult.fraud_flags || [],
-        started_at: new Date(),
-        completed_at: new Date(),
+        started_at: new Date().toISOString(),
+        completed_at: new Date().toISOString(),
         ip_address: ip,
         device_info: deviceInfo,
         proof_url: proofUrl,
@@ -274,11 +268,7 @@ export default function Tasks() {
     setActiveTask(null);
     setProof(null);
 
-    alert(
-      fraudResult.fraud_status === 'review'
-        ? '✅ Proof submitted, but your activity has been flagged for review.'
-        : '✅ Proof submitted. Your reward will be credited after admin approval.'
-    );
+    alert('✅ Proof submitted. Your 5 Spin Points will be credited after admin approval.');
 
     fetchTasks();
   };
@@ -310,7 +300,7 @@ export default function Tasks() {
               <h2 className="font-semibold">{task.title}</h2>
 
               <p className="text-sm text-gray-400 mb-1">
-                Reward: {task.reward} Spin Points
+                Reward: {TASK_REWARD} Spin Points
               </p>
 
               <p className="text-xs text-gray-500 mb-2 break-all">
