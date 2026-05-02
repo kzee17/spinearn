@@ -17,7 +17,9 @@ export default function Tasks() {
   }, []);
 
   const init = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
     if (!session) {
       window.location.href = '/auth';
@@ -35,7 +37,13 @@ export default function Tasks() {
 
     if (!user) {
       await supabase.from('waitlist_users').insert([
-        { email, spin_points: 0, balance_naira: 0 },
+        {
+          email,
+          spin_points: 0,
+          balance_naira: 0,
+          fraud_score: 0,
+          fraud_status: 'clear',
+        },
       ]);
     }
 
@@ -81,19 +89,25 @@ export default function Tasks() {
           clearInterval(interval);
           return 0;
         }
+
         return prev - 1;
       });
     }, 1000);
   };
 
   const uploadProof = async (file: File) => {
-    const filePath = `proofs/${Date.now()}-${file.name}`;
+    const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const filePath = `proofs/${Date.now()}-${safeFileName}`;
 
     const { error } = await supabase.storage
       .from('proofs')
       .upload(filePath, file);
 
-    if (error) return null;
+    if (error) {
+      console.error('Proof upload error:', error);
+      return null;
+    }
+
     return filePath;
   };
 
@@ -136,11 +150,40 @@ export default function Tasks() {
     }
 
     let ip = '';
+
     try {
       const res = await fetch('https://api.ipify.org?format=json');
       const json = await res.json();
-      ip = json.ip;
-    } catch {}
+      ip = json.ip || '';
+    } catch {
+      ip = '';
+    }
+
+    const deviceInfo = navigator.userAgent;
+
+    const fraudCheck = await fetch('/api/fraud/check-task', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_email: userEmail,
+        ip_address: ip,
+        device_info: deviceInfo,
+      }),
+    });
+
+    const fraudResult = await fraudCheck.json();
+
+    if (!fraudCheck.ok) {
+      alert(fraudResult.error || 'Fraud check failed. Please try again.');
+      return;
+    }
+
+    if (fraudResult.fraud_status === 'blocked') {
+      alert(
+        '⚠️ Your account has been flagged for suspicious activity. Contact support.'
+      );
+      return;
+    }
 
     const proofUrl = await uploadProof(proof);
 
@@ -157,10 +200,12 @@ export default function Tasks() {
         proof_status: 'pending',
         reward_amount: Number(task.reward || 0),
         credited: false,
+        fraud_score: fraudResult.fraud_score || 0,
+        fraud_flags: fraudResult.fraud_flags || [],
         started_at: new Date(),
         completed_at: new Date(),
         ip_address: ip,
-        device_info: navigator.userAgent,
+        device_info: deviceInfo,
         proof_url: proofUrl,
       },
     ]);
@@ -190,7 +235,12 @@ export default function Tasks() {
     setActiveTask(null);
     setProof(null);
 
-    alert('✅ Proof submitted. Your reward will be credited after admin approval.');
+    alert(
+      fraudResult.fraud_status === 'review'
+        ? '✅ Proof submitted, but your activity has been flagged for review.'
+        : '✅ Proof submitted. Your reward will be credited after admin approval.'
+    );
+
     fetchTasks();
   };
 
@@ -228,7 +278,8 @@ export default function Tasks() {
               </p>
 
               <p className="text-xs text-gray-500 mb-2">
-                Progress: {task.current_completions || 0}/{task.max_completions || 100}
+                Progress: {task.current_completions || 0}/
+                {task.max_completions || 100}
               </p>
 
               {isActive && !done && (
