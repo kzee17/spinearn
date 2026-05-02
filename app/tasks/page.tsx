@@ -16,6 +16,21 @@ export default function Tasks() {
     init();
   }, []);
 
+  const normalizeUrl = (url: string) => {
+    if (!url) return '';
+
+    const trimmedUrl = url.trim();
+
+    if (
+      trimmedUrl.startsWith('http://') ||
+      trimmedUrl.startsWith('https://')
+    ) {
+      return trimmedUrl;
+    }
+
+    return `https://${trimmedUrl}`;
+  };
+
   const init = async () => {
     const {
       data: { session },
@@ -78,10 +93,18 @@ export default function Tasks() {
   };
 
   const startTask = (taskId: string, link: string) => {
+    const finalUrl = normalizeUrl(link);
+
+    if (!finalUrl) {
+      alert('Invalid advertiser URL.');
+      return;
+    }
+
     setActiveTask(taskId);
     setTimer(10);
     setProof(null);
-    window.open(link, '_blank');
+
+    window.open(finalUrl, '_blank', 'noopener,noreferrer');
 
     const interval = setInterval(() => {
       setTimer((prev) => {
@@ -264,6 +287,7 @@ export default function Tasks() {
         {tasks.map((task) => {
           const done = completedTasks.includes(task.id);
           const isActive = activeTask === task.id;
+          const displayLink = normalizeUrl(task.link || '');
 
           return (
             <div key={task.id} className="bg-gray-900 p-4 rounded mb-4">
@@ -274,7 +298,7 @@ export default function Tasks() {
               </p>
 
               <p className="text-xs text-gray-500 mb-2 break-all">
-                Link: {task.link}
+                Link: {displayLink}
               </p>
 
               <p className="text-xs text-gray-500 mb-2">
