@@ -3,16 +3,21 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 
+const ADMIN_EMAIL = 'engrlawalko@gmail.com';
+
 export default function AdminProofsPage() {
   const [proofs, setProofs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [adminEmail, setAdminEmail] = useState('');
 
   useEffect(() => {
     checkAdminAndLoadProofs();
   }, []);
 
   const checkAdminAndLoadProofs = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
     if (!session) {
       alert('Please login first');
@@ -20,16 +25,12 @@ export default function AdminProofsPage() {
       return;
     }
 
-    const email = session.user.email;
+    const email = (session.user.email || '').toLowerCase().trim();
+    setAdminEmail(email);
 
-    const { data: adminData } = await supabase
-      .from('admins')
-      .select('*')
-      .eq('email', email)
-      .maybeSingle();
-
-    if (!adminData) {
-      alert('Access denied');
+    if (email !== ADMIN_EMAIL) {
+      alert('Access denied. This account is not an admin.');
+      await supabase.auth.signOut();
       window.location.href = '/';
       return;
     }
@@ -46,6 +47,7 @@ export default function AdminProofsPage() {
 
     if (error) {
       alert(error.message);
+      setLoading(false);
       return;
     }
 
@@ -53,10 +55,11 @@ export default function AdminProofsPage() {
   };
 
   const getProofUrl = (proofUrl: string) => {
-    return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/proofs/${proofUrl.replace(
-      'proofs/',
-      ''
-    )}`;
+    if (!proofUrl) return '#';
+
+    const cleanPath = proofUrl.replace(/^proofs\//, '');
+
+    return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/proofs/${cleanPath}`;
   };
 
   const approveProof = async (proof: any) => {
@@ -65,16 +68,19 @@ export default function AdminProofsPage() {
       return;
     }
 
+    const confirmApprove = confirm('Approve this proof and credit user wallet?');
+    if (!confirmApprove) return;
+
     const reward = Number(proof.reward_amount || 0);
 
-    const { data: user } = await supabase
+    const { data: user, error: userError } = await supabase
       .from('waitlist_users')
       .select('*')
       .eq('email', proof.user_email)
       .maybeSingle();
 
-    if (!user) {
-      alert('User not found.');
+    if (userError || !user) {
+      alert(userError?.message || 'User not found.');
       return;
     }
 
@@ -146,6 +152,11 @@ export default function AdminProofsPage() {
     loadProofs();
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/';
+  };
+
   if (loading) {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -157,7 +168,29 @@ export default function AdminProofsPage() {
   return (
     <main className="min-h-screen bg-black text-white px-6 py-10">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-3">🛡️ Admin Proof Validation</h1>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold">🛡️ Admin Proof Validation</h1>
+            <p className="text-gray-400 text-sm mt-1">
+              Logged in as: {adminEmail}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <a href="/admin" className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded">
+              Admin Home
+            </a>
+            <a href="/admin/fraud" className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded font-bold">
+              Fraud
+            </a>
+            <button
+              onClick={handleLogout}
+              className="bg-red-900 hover:bg-red-800 px-4 py-2 rounded font-bold"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
 
         <p className="text-gray-400 mb-8">
           Review task proofs before rewarding users.
@@ -174,14 +207,27 @@ export default function AdminProofsPage() {
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                   <div>
                     <h2 className="font-bold">{proof.user_email}</h2>
-                    <p className="text-sm text-gray-400">Task ID: {proof.task_id}</p>
+
+                    <p className="text-sm text-gray-400">
+                      Task ID: {proof.task_id}
+                    </p>
+
                     <p className="text-sm text-gray-400">
                       Reward: {Number(proof.reward_amount || 0)} Spin Points
                     </p>
-                    <p className="text-sm text-gray-400">IP: {proof.ip_address || 'N/A'}</p>
+
+                    <p className="text-sm text-gray-400">
+                      IP: {proof.ip_address || 'N/A'}
+                    </p>
+
+                    <p className="text-sm text-gray-400">
+                      Fraud Score: {proof.fraud_score || 0}
+                    </p>
+
                     <p className="text-sm text-gray-400">
                       Status: {proof.proof_status || 'pending'}
                     </p>
+
                     <p className="text-sm text-gray-400">
                       Credited: {proof.credited ? 'Yes' : 'No'}
                     </p>
@@ -204,12 +250,15 @@ export default function AdminProofsPage() {
                   <a
                     href={getProofUrl(proof.proof_url)}
                     target="_blank"
+                    rel="noopener noreferrer"
                     className="inline-block mt-4 text-blue-400 underline"
                   >
                     View Uploaded Proof
                   </a>
                 ) : (
-                  <p className="text-yellow-400 text-sm mt-4">No proof uploaded.</p>
+                  <p className="text-yellow-400 text-sm mt-4">
+                    No proof uploaded.
+                  </p>
                 )}
 
                 {proof.proof_status !== 'approved' &&
