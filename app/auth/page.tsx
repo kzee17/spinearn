@@ -112,30 +112,30 @@ function AuthContent() {
     window.location.href = '/';
   };
 
-  const forgotPassword = async () => {
-    if (!email) {
-      alert('Please enter your email address first.');
-      return;
+ const forgotPassword = async () => {
+  if (!email) {
+    alert('Please enter your email address first.');
+    return;
+  }
+
+  setLoading(true);
+
+  const { error } = await supabase.auth.resetPasswordForEmail(
+    email.toLowerCase().trim(),
+    {
+      redirectTo: 'https://spinbyte.app/reset-password',
     }
+  );
 
-    setLoading(true);
+  setLoading(false);
 
-    const { error } = await supabase.auth.resetPasswordForEmail(
-      email.toLowerCase().trim(),
-      {
-        redirectTo: `${window.location.origin}/reset-password`,
-      }
-    );
+  if (error) {
+    alert(error.message);
+    return;
+  }
 
-    setLoading(false);
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    alert('📩 Password reset link has been sent to your email.');
-  };
+  alert('📩 Password reset link has been sent to your email.');
+};
 
   return (
     <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6">
