@@ -39,7 +39,7 @@ export default function AuthPage() {
     });
 
     if (!error) {
-      window.location.href = '/tasks';
+      window.location.href = '/';
     } else {
       alert(error.message);
     }
