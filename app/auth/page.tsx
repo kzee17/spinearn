@@ -1,15 +1,34 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
 
 export default function AuthPage() {
+  const searchParams = useSearchParams();
+
   const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [ref, setRef] = useState('');
+
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const queryMode = searchParams.get('mode');
+    const referral = searchParams.get('ref');
+
+    if (queryMode === 'signup') setMode('signup');
+    if (referral) setRef(referral);
+  }, [searchParams]);
+
+  const generateReferralCode = () => {
+    const cleanName = name.replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase();
+    return `${cleanName || 'SPN'}${Date.now().toString().slice(-5)}`;
+  };
 
   const signUp = async () => {
     if (!name || !phone || !email || !password) {
@@ -32,13 +51,20 @@ export default function AuthPage() {
     });
 
     if (authError) {
-      alert(authError.message);
       setLoading(false);
+
+      if (authError.message.toLowerCase().includes('rate limit')) {
+        alert(
+          'Signup email limit reached temporarily. Please try again later or contact support.'
+        );
+        return;
+      }
+
+      alert(authError.message);
       return;
     }
 
-    const referralCode =
-      name.slice(0, 3).toUpperCase() + Math.floor(Math.random() * 10000);
+    const referralCode = generateReferralCode();
 
     const { error: profileError } = await supabase
       .from('waitlist_users')
@@ -46,11 +72,11 @@ export default function AuthPage() {
         [
           {
             user_id: authData.user?.id || null,
-            name,
+            name: name.trim(),
             email: cleanEmail,
-            phone,
+            phone: phone.trim(),
             referral_code: referralCode,
-            referred_by: null,
+            referred_by: ref || null,
             spin_points: 0,
             balance_naira: 0,
             fraud_score: 0,
@@ -67,7 +93,7 @@ export default function AuthPage() {
       return;
     }
 
-    alert('✅ Account created successfully. Please login.');
+    alert('✅ Account created successfully. You can now login.');
     setMode('login');
   };
 
@@ -97,9 +123,15 @@ export default function AuthPage() {
   return (
     <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6">
       <div className="w-full max-w-md bg-gray-900 border border-gray-800 rounded-2xl p-6">
-        <h1 className="text-3xl font-bold mb-6 text-green-400">
+        <h1 className="text-3xl font-bold mb-2 text-green-400">
           {mode === 'login' ? '🔐 Login to SpinEarn' : '🚀 Join SpinEarn'}
         </h1>
+
+        <p className="text-gray-400 mb-6">
+          {mode === 'login'
+            ? 'Login with your email and password.'
+            : 'Create your account and start using SpinEarn.'}
+        </p>
 
         {mode === 'signup' && (
           <>
@@ -131,7 +163,7 @@ export default function AuthPage() {
 
         <input
           type="password"
-          placeholder="Password"
+          placeholder="Password minimum 6 characters"
           className="w-full mb-4 p-3 rounded bg-black border border-gray-700"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -141,7 +173,7 @@ export default function AuthPage() {
           <button
             onClick={signIn}
             disabled={loading}
-            className="w-full bg-green-500 hover:bg-green-600 text-black py-3 rounded font-bold"
+            className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-600 text-black py-3 rounded font-bold"
           >
             {loading ? 'Please wait...' : 'Login'}
           </button>
@@ -149,7 +181,7 @@ export default function AuthPage() {
           <button
             onClick={signUp}
             disabled={loading}
-            className="w-full bg-blue-500 hover:bg-blue-600 py-3 rounded font-bold"
+            className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-600 py-3 rounded font-bold"
           >
             {loading ? 'Creating account...' : 'Sign Up / Join Now'}
           </button>
@@ -163,6 +195,13 @@ export default function AuthPage() {
             ? 'New user? Sign up / Join now'
             : 'Already have an account? Login'}
         </button>
+
+        <div className="mt-6 bg-black/50 border border-gray-700 p-3 rounded">
+          <p className="text-xs text-gray-300">
+            🔒 Passwords are securely handled by Supabase Auth and are not
+            stored in the SpinEarn user profile table.
+          </p>
+        </div>
 
         <div className="mt-6">
           <a href="/" className="text-gray-400 hover:text-green-400 text-sm">

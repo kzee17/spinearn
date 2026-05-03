@@ -12,12 +12,6 @@ export default function HomeContent() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [sessionUser, setSessionUser] = useState<any>(null);
 
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-  });
-
   useEffect(() => {
     const referral = searchParams.get('ref');
     if (referral) setRef(referral);
@@ -72,66 +66,6 @@ export default function HomeContent() {
     setUnreadCount(0);
     alert('You have logged out successfully.');
     window.location.href = '/';
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    if (!formData.name || !formData.email || !formData.phone) {
-      alert('Please fill all fields');
-      return;
-    }
-
-    try {
-      const referralCode =
-        formData.name.slice(0, 3).toUpperCase() +
-        Math.floor(Math.random() * 10000);
-
-      const { data: existingUser, error: checkError } = await supabase
-        .from('waitlist_users')
-        .select('id,email')
-        .eq('email', formData.email)
-        .maybeSingle();
-
-      if (checkError) {
-        alert(checkError.message);
-        return;
-      }
-
-      if (existingUser) {
-        alert('⚠️ You already joined. Please login.');
-        window.location.href = '/auth';
-        return;
-      }
-
-      const { error: insertError } = await supabase
-        .from('waitlist_users')
-        .insert([
-          {
-            name: formData.name,
-            email: formData.email,
-            phone: formData.phone,
-            referral_code: referralCode,
-            referred_by: ref || null,
-            spin_points: 0,
-            balance_naira: 0,
-          },
-        ]);
-
-      if (insertError) {
-        alert(insertError.message);
-        return;
-      }
-
-      window.location.href = `/success?ref=${referralCode}`;
-    } catch (err) {
-      console.error(err);
-      alert('❌ Something went wrong');
-    }
   };
 
   return (
@@ -201,20 +135,20 @@ export default function HomeContent() {
                 </a>
 
                 <a
+                  href={`/auth?mode=signup${ref ? `&ref=${ref}` : ''}`}
+                  className="bg-green-500 hover:bg-green-600 text-black px-4 py-2 rounded text-sm font-bold"
+                >
+                  Join Now
+                </a>
+
+                <a
                   href="/admin"
                   className="bg-purple-500 hover:bg-purple-600 px-4 py-2 rounded text-sm font-bold"
                 >
-                  Admin Login
+                  Admin
                 </a>
               </>
             )}
-
-            <a
-              href="/wallet-plus"
-              className="bg-green-500 hover:bg-green-600 text-black px-4 py-2 rounded text-sm font-bold"
-            >
-              Join Wallet+
-            </a>
           </div>
         </div>
       </header>
@@ -248,10 +182,10 @@ export default function HomeContent() {
 
           <div className="flex flex-col sm:flex-row gap-3">
             <a
-              href="/wallet-plus"
+              href={`/auth?mode=signup${ref ? `&ref=${ref}` : ''}`}
               className="bg-green-500 hover:bg-green-600 text-black px-6 py-3 rounded font-bold text-center"
             >
-              Start Wallet+
+              Sign Up / Join Now
             </a>
 
             <a
@@ -270,68 +204,48 @@ export default function HomeContent() {
           </div>
         </div>
 
-        {/* JOIN FORM */}
+        {/* JOIN CARD */}
         <div className="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-xl">
           <h3 className="text-2xl font-bold mb-2">Join SpinEarn Today</h3>
+
           <p className="text-gray-400 mb-5">
-            Create your entry profile and start exploring tasks, referrals, and
-            Wallet+ benefits.
+            Create your SpinEarn account with your name, phone number, email,
+            and password. After registration, you can login, complete tasks,
+            upload proof, and earn Spin Points after approval.
           </p>
 
-          <form onSubmit={handleSubmit}>
-            <input
-              type="text"
-              name="name"
-              placeholder="Full Name"
-              value={formData.name}
-              onChange={handleChange}
-              className="w-full mb-3 p-3 rounded bg-black border border-gray-700"
-              required
-            />
+          <div className="bg-black/50 border border-green-700 p-4 rounded-xl mb-5">
+            <p className="text-green-300 font-bold mb-1">
+              ✅ Secure signup for new members
+            </p>
+            <p className="text-gray-300 text-sm">
+              Passwords are handled securely by Supabase Auth. SpinEarn does not
+              store your password inside the public user profile table.
+            </p>
+          </div>
 
-            <input
-              type="email"
-              name="email"
-              placeholder="Email Address"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full mb-3 p-3 rounded bg-black border border-gray-700"
-              required
-            />
+          <a
+            href={`/auth?mode=signup${ref ? `&ref=${ref}` : ''}`}
+            className="block w-full bg-green-500 hover:bg-green-600 text-black py-3 rounded font-bold text-center"
+          >
+            Sign Up / Join Now 🚀
+          </a>
 
-            <input
-              type="tel"
-              name="phone"
-              placeholder="Phone Number"
-              value={formData.phone}
-              onChange={handleChange}
-              className="w-full mb-4 p-3 rounded bg-black border border-gray-700"
-              required
-            />
-
-            <button
-              type="submit"
-              className="w-full bg-green-500 hover:bg-green-600 text-black py-3 rounded font-bold"
-            >
-              Join Now 🚀
-            </button>
-          </form>
+          <a
+            href="/auth"
+            className="block w-full mt-3 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded font-bold text-center"
+          >
+            Already Registered? Login
+          </a>
 
           <div className="bg-black/50 border border-gray-700 p-3 rounded mt-4">
             <p className="text-xs text-gray-300">
-              🔒 We only request basic registration details. Task rewards are
-              verified before crediting.
+              🔒 We only request basic registration details. Rewards are
+              credited only after verified task proof.
             </p>
           </div>
 
           <p className="text-xs text-gray-500 mt-4">
-            Already registered?{' '}
-            <a href="/auth" className="text-green-400 underline">
-              Login here
-            </a>
-          </p>
-
-          <p className="text-xs text-gray-500 mt-2">
             Platform manager?{' '}
             <a href="/admin" className="text-purple-400 underline">
               Admin Login
@@ -449,7 +363,7 @@ export default function HomeContent() {
           <div className="bg-gray-900 p-6 rounded-xl">
             <h3 className="text-xl font-bold mb-3">1. Join the Platform</h3>
             <p className="text-gray-400">
-              Register your profile, login, and access tasks, Wallet+, and
+              Create your account, login, and access tasks, Wallet+, and
               referral opportunities.
             </p>
           </div>
@@ -617,10 +531,17 @@ export default function HomeContent() {
 
           <div className="flex flex-col sm:flex-row justify-center gap-3">
             <a
-              href="/auth"
+              href={`/auth?mode=signup${ref ? `&ref=${ref}` : ''}`}
               className="bg-green-500 hover:bg-green-600 text-black px-6 py-3 rounded font-bold"
             >
-              Login / Register
+              Sign Up / Join Now
+            </a>
+
+            <a
+              href="/auth"
+              className="bg-gray-800 hover:bg-gray-700 text-white px-6 py-3 rounded font-bold"
+            >
+              Login
             </a>
 
             <a
