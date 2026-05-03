@@ -112,6 +112,31 @@ function AuthContent() {
     window.location.href = '/';
   };
 
+  const forgotPassword = async () => {
+    if (!email) {
+      alert('Please enter your email address first.');
+      return;
+    }
+
+    setLoading(true);
+
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      email.toLowerCase().trim(),
+      {
+        redirectTo: `${window.location.origin}/reset-password`,
+      }
+    );
+
+    setLoading(false);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    alert('📩 Password reset link has been sent to your email.');
+  };
+
   return (
     <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6">
       <div className="w-full max-w-md bg-gray-900 border border-gray-800 rounded-2xl p-6">
@@ -162,13 +187,23 @@ function AuthContent() {
         />
 
         {mode === 'login' ? (
-          <button
-            onClick={signIn}
-            disabled={loading}
-            className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-600 text-black py-3 rounded font-bold"
-          >
-            {loading ? 'Please wait...' : 'Login'}
-          </button>
+          <>
+            <button
+              onClick={signIn}
+              disabled={loading}
+              className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-600 text-black py-3 rounded font-bold"
+            >
+              {loading ? 'Please wait...' : 'Login'}
+            </button>
+
+            <button
+              onClick={forgotPassword}
+              disabled={loading}
+              className="mt-3 text-sm text-blue-400 underline"
+            >
+              Forgot Password?
+            </button>
+          </>
         ) : (
           <button
             onClick={signUp}
@@ -181,7 +216,7 @@ function AuthContent() {
 
         <button
           onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-          className="mt-5 text-green-400 underline text-sm"
+          className="mt-5 text-green-400 underline text-sm block"
         >
           {mode === 'login'
             ? 'New user? Sign up / Join now'
