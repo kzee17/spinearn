@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
 
-export default function AuthPage() {
+function AuthContent() {
   const searchParams = useSearchParams();
 
   const [mode, setMode] = useState<'login' | 'signup'>('login');
@@ -52,14 +52,6 @@ export default function AuthPage() {
 
     if (authError) {
       setLoading(false);
-
-      if (authError.message.toLowerCase().includes('rate limit')) {
-        alert(
-          'Signup email limit reached temporarily. Please try again later or contact support.'
-        );
-        return;
-      }
-
       alert(authError.message);
       return;
     }
@@ -210,5 +202,19 @@ export default function AuthPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-black text-white flex items-center justify-center">
+          Loading...
+        </main>
+      }
+    >
+      <AuthContent />
+    </Suspense>
   );
 }
