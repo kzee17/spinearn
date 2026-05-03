@@ -152,21 +152,12 @@ export default function HomeContent() {
           </a>
 
           <nav className="hidden md:flex items-center gap-5 text-sm">
-            <a href="#how" className="hover:text-green-400">
-              How it Works
-            </a>
-            <a href="#walletplus" className="hover:text-green-400">
-              Wallet+
-            </a>
-            <a href="/tasks" className="hover:text-green-400">
-              Tasks
-            </a>
-            <a href="/advertise" className="hover:text-green-400">
-              Advertise
-            </a>
-            <a href="/leaderboard" className="hover:text-green-400">
-              Leaderboard
-            </a>
+            <a href="#how" className="hover:text-green-400">How it Works</a>
+            <a href="#trust" className="hover:text-green-400">Trust</a>
+            <a href="#walletplus" className="hover:text-green-400">Wallet+</a>
+            <a href="/tasks" className="hover:text-green-400">Tasks</a>
+            <a href="/advertise" className="hover:text-green-400">Advertise</a>
+            <a href="/leaderboard" className="hover:text-green-400">Leaderboard</a>
 
             {sessionUser && (
               <a
@@ -239,11 +230,21 @@ export default function HomeContent() {
             Earn, Save, Promote and Grow Digitally with SpinEarn
           </h2>
 
-          <p className="text-gray-300 text-lg mb-8">
-            SpinEarn is a fintech-powered engagement platform where users earn
-            from verified digital tasks, referrals, Wallet+ activities, and
-            advertisers pay to promote their links, pages, products, and content.
+          <p className="text-gray-300 text-lg mb-5">
+            SpinEarn is a digital engagement and Wallet+ platform powered by
+            Spinbyte International Ltd. Users complete verified tasks, upload
+            proof, earn Spin Points, and participate in Wallet+ activities.
           </p>
+
+          <div className="bg-gray-900 border border-green-700 p-4 rounded-xl mb-8">
+            <p className="text-green-300 font-bold mb-1">
+              ✅ Built for transparency, not fake promises.
+            </p>
+            <p className="text-gray-300 text-sm">
+              SpinEarn does not promise overnight wealth or guaranteed income.
+              Rewards are earned only through verified platform activity.
+            </p>
+          </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
             <a
@@ -316,6 +317,13 @@ export default function HomeContent() {
             </button>
           </form>
 
+          <div className="bg-black/50 border border-gray-700 p-3 rounded mt-4">
+            <p className="text-xs text-gray-300">
+              🔒 We only request basic registration details. Task rewards are
+              verified before crediting.
+            </p>
+          </div>
+
           <p className="text-xs text-gray-500 mt-4">
             Already registered?{' '}
             <a href="/auth" className="text-green-400 underline">
@@ -332,6 +340,82 @@ export default function HomeContent() {
         </div>
       </section>
 
+      {/* TRUST BADGES */}
+      <section id="trust" className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-gray-900 border border-gray-800 p-5 rounded-xl">
+          <p className="text-green-400 font-bold">✅ Powered by Spinbyte</p>
+          <p className="text-gray-400 text-sm mt-2">
+            Built by Spinbyte International Ltd, an Abuja-based engineering and
+            technology company.
+          </p>
+        </div>
+
+        <div className="bg-gray-900 border border-gray-800 p-5 rounded-xl">
+          <p className="text-green-400 font-bold">✅ Verified Tasks</p>
+          <p className="text-gray-400 text-sm mt-2">
+            Users upload proof before rewards are credited.
+          </p>
+        </div>
+
+        <div className="bg-gray-900 border border-gray-800 p-5 rounded-xl">
+          <p className="text-green-400 font-bold">✅ Fraud Checks</p>
+          <p className="text-gray-400 text-sm mt-2">
+            Suspicious activity can be flagged before payout.
+          </p>
+        </div>
+
+        <div className="bg-gray-900 border border-gray-800 p-5 rounded-xl">
+          <p className="text-green-400 font-bold">✅ Clear Rules</p>
+          <p className="text-gray-400 text-sm mt-2">
+            No guaranteed returns. Rewards depend on verified activity.
+          </p>
+        </div>
+      </section>
+
+      {/* ABOUT SPINBYTE */}
+      <section className="max-w-7xl mx-auto px-6 py-16">
+        <div className="bg-gray-900 border border-gray-800 p-8 rounded-2xl grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div>
+            <h2 className="text-3xl font-bold mb-4">
+              About Spinbyte International Ltd
+            </h2>
+
+            <p className="text-gray-300 mb-4">
+              SpinEarn is developed by Spinbyte International Ltd, a technology
+              and engineering company focused on MEP engineering, smart
+              infrastructure, ICT solutions, and AI training.
+            </p>
+
+            <p className="text-gray-400">
+              Spinbyte’s broader mission is to support smart infrastructure,
+              professional technology solutions, and digital transformation for
+              individuals, businesses, and institutions.
+            </p>
+
+            <a
+              href="https://spinbyteltd.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block mt-6 bg-blue-500 hover:bg-blue-600 text-white px-5 py-3 rounded font-bold"
+            >
+              Visit Spinbyte Official Website
+            </a>
+          </div>
+
+          <div className="bg-black/50 border border-gray-700 p-6 rounded-xl">
+            <h3 className="text-xl font-bold mb-4">Why this matters</h3>
+
+            <ul className="space-y-3 text-gray-300 text-sm">
+              <li>✅ SpinEarn is not an anonymous platform.</li>
+              <li>✅ It is connected to a known technology brand.</li>
+              <li>✅ The reward system is based on completed tasks.</li>
+              <li>✅ Wallet+ is clearly separated from investment schemes.</li>
+              <li>✅ Users are rewarded after validation, not by false promises.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
       {/* STATS */}
       <section className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-gray-900 p-5 rounded-xl">
@@ -341,7 +425,7 @@ export default function HomeContent() {
 
         <div className="bg-gray-900 p-5 rounded-xl">
           <p className="text-gray-400 text-sm">Earning Method</p>
-          <h3 className="text-2xl font-bold">Tasks</h3>
+          <h3 className="text-2xl font-bold">Verified Tasks</h3>
         </div>
 
         <div className="bg-gray-900 p-5 rounded-xl">
@@ -375,18 +459,63 @@ export default function HomeContent() {
               2. Complete Verified Tasks
             </h3>
             <p className="text-gray-400">
-              Follow pages, visit links, like content, upload proof, and earn
-              Spin Points after admin validation.
+              Visit assigned links, engage with content, upload proof, and earn
+              Spin Points only after validation.
             </p>
           </div>
 
           <div className="bg-gray-900 p-6 rounded-xl">
             <h3 className="text-xl font-bold mb-3">3. Grow Your Wallet</h3>
             <p className="text-gray-400">
-              Use Wallet+ for membership, savings contributions, referrals, and
-              controlled advance requests.
+              Use Wallet+ for savings tracking, referrals, participation
+              records, and controlled advance requests.
             </p>
           </div>
+        </div>
+      </section>
+
+      {/* HOW MONEY FLOWS */}
+      <section className="max-w-7xl mx-auto px-6 py-12">
+        <div className="bg-blue-950/40 border border-blue-700 p-8 rounded-2xl">
+          <h2 className="text-3xl font-bold mb-4">
+            How the Reward System Works
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="bg-black/40 p-5 rounded-xl">
+              <h3 className="font-bold text-blue-300 mb-2">
+                1. Advertisers Promote
+              </h3>
+              <p className="text-gray-300 text-sm">
+                Businesses and creators can publish engagement campaigns and
+                tasks.
+              </p>
+            </div>
+
+            <div className="bg-black/40 p-5 rounded-xl">
+              <h3 className="font-bold text-blue-300 mb-2">
+                2. Users Complete Tasks
+              </h3>
+              <p className="text-gray-300 text-sm">
+                Users visit links, follow instructions, and upload proof for
+                validation.
+              </p>
+            </div>
+
+            <div className="bg-black/40 p-5 rounded-xl">
+              <h3 className="font-bold text-blue-300 mb-2">
+                3. Rewards Are Credited
+              </h3>
+              <p className="text-gray-300 text-sm">
+                Approved proofs earn Spin Points according to platform rules.
+              </p>
+            </div>
+          </div>
+
+          <p className="text-yellow-300 text-sm mt-6">
+            ⚠️ SpinEarn is not a get-rich-quick scheme. Earnings depend on real
+            task availability, successful completion, and verification.
+          </p>
         </div>
       </section>
 
@@ -407,7 +536,7 @@ export default function HomeContent() {
               <li>✅ Savings contribution tracking</li>
               <li>✅ Referral reward automation</li>
               <li>✅ Supporter-based advance requests</li>
-              <li>✅ Spin Points from transactions</li>
+              <li>✅ Spin Points from platform activities</li>
             </ul>
 
             <a
@@ -420,10 +549,14 @@ export default function HomeContent() {
 
           <div className="bg-black/40 p-6 rounded-xl">
             <h3 className="text-xl font-bold mb-4">Important Notice</h3>
+            <p className="text-gray-300 text-sm mb-4">
+              Wallet+ is not a bank, investment scheme, loan company, or
+              guaranteed return platform.
+            </p>
+
             <p className="text-gray-300 text-sm">
-              Wallet+ is not a bank, investment scheme, or guaranteed return
-              platform. It is a digital wallet, rewards, and membership feature
-              governed by platform usage rules and user consent.
+              It is a digital wallet, rewards, savings tracking, and membership
+              feature governed by platform usage rules and user consent.
             </p>
           </div>
         </div>
@@ -473,13 +606,13 @@ export default function HomeContent() {
       <section className="max-w-7xl mx-auto px-6 py-16 text-center">
         <div className="bg-gray-900 p-8 rounded-2xl">
           <h2 className="text-3xl font-bold mb-4">
-            Ready to Join the SpinEarn Ecosystem?
+            Ready to Join a Transparent Digital Engagement Platform?
           </h2>
 
           <p className="text-gray-400 max-w-2xl mx-auto mb-6">
-            Whether you want to earn as a member, save through Wallet+, promote
-            your brand, or track platform activity, SpinEarn gives you one
-            connected digital engagement system.
+            Whether you want to earn Spin Points from verified tasks, use
+            Wallet+, promote your brand, or track platform activity, SpinEarn
+            gives you one connected digital engagement system.
           </p>
 
           <div className="flex flex-col sm:flex-row justify-center gap-3">
@@ -488,13 +621,6 @@ export default function HomeContent() {
               className="bg-green-500 hover:bg-green-600 text-black px-6 py-3 rounded font-bold"
             >
               Login / Register
-            </a>
-
-            <a
-              href="/admin"
-              className="bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded font-bold"
-            >
-              Admin Login
             </a>
 
             <a
@@ -522,26 +648,22 @@ export default function HomeContent() {
           </p>
 
           <div className="flex flex-wrap gap-4">
-            <a href="/tasks" className="hover:text-green-400">
-              Tasks
-            </a>
-            <a href="/wallet-plus" className="hover:text-green-400">
-              Wallet+
-            </a>
-            <a href="/advertise" className="hover:text-green-400">
-              Advertise
-            </a>
-            <a href="/admin" className="hover:text-green-400">
-              Admin Login
-            </a>
-            <a href="/terms" className="hover:text-green-400">
-              Terms
-            </a>
-            <a href="/privacy" className="hover:text-green-400">
-              Privacy
-            </a>
+            <a href="/tasks" className="hover:text-green-400">Tasks</a>
+            <a href="/wallet-plus" className="hover:text-green-400">Wallet+</a>
+            <a href="/advertise" className="hover:text-green-400">Advertise</a>
+            <a href="/admin" className="hover:text-green-400">Admin Login</a>
+            <a href="/terms" className="hover:text-green-400">Terms</a>
+            <a href="/privacy" className="hover:text-green-400">Privacy</a>
             <a href="/advertiser-terms" className="hover:text-green-400">
               Advertiser Terms
+            </a>
+            <a
+              href="https://spinbyteltd.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-green-400"
+            >
+              Spinbyte Website
             </a>
           </div>
         </div>
