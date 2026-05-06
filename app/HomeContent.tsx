@@ -291,6 +291,25 @@ export default function HomeContent() {
           </p>
         </div>
       </section>
+<section className="max-w-7xl mx-auto px-6 py-8">
+  <div className="bg-yellow-950/40 border border-yellow-700 p-6 rounded-2xl">
+    <h2 className="text-2xl font-bold text-yellow-300 mb-3">
+      🚀 SpinEarn is Currently in Early Access
+    </h2>
+
+    <p className="text-gray-300 mb-3">
+      SpinEarn is still growing. We are currently onboarding early users,
+      testing verified tasks, improving Wallet+, and preparing the platform for
+      real advertiser campaigns.
+    </p>
+
+    <p className="text-gray-400 text-sm">
+      We do not display fake withdrawal proofs, inflated numbers, or false
+      earning claims. Every visible number on SpinEarn is based on real platform
+      activity.
+    </p>
+  </div>
+</section>
 
       {/* ABOUT SPINBYTE */}
       <section className="max-w-7xl mx-auto px-6 py-16">
