@@ -52,13 +52,19 @@ export default function HomeContent() {
     setUnreadCount(data?.length || 0);
   };
 
-  const fetchUserCount = async () => {
-    const { count } = await supabase
-      .from('waitlist_users')
-      .select('*', { count: 'exact', head: true });
+ const fetchUserCount = async () => {
+  const { count, error } = await supabase
+    .from('waitlist_users')
+    .select('id', { count: 'exact', head: true });
 
-    setUserCount(count || 0);
-  };
+  if (error) {
+    console.error('User count error:', error.message);
+    setUserCount(0);
+    return;
+  }
+
+  setUserCount(count ?? 0);
+};
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -157,7 +163,7 @@ export default function HomeContent() {
       <section className="max-w-7xl mx-auto px-6 py-16 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
         <div>
           <div className="inline-block bg-green-900/40 border border-green-600 text-green-300 px-4 py-2 rounded-full text-sm mb-5">
-            🔥 {userCount}+ users already on SpinEarn
+            🔥 {userCount} registered users on SpinEarn
           </div>
 
           <h2 className="text-4xl md:text-6xl font-extrabold leading-tight mb-5">
@@ -334,7 +340,7 @@ export default function HomeContent() {
       <section className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-gray-900 p-5 rounded-xl">
           <p className="text-gray-400 text-sm">Members</p>
-          <h3 className="text-3xl font-bold text-green-400">{userCount}+</h3>
+          <h3 className="text-3xl font-bold text-green-400">{userCount}</h3>
         </div>
 
         <div className="bg-gray-900 p-5 rounded-xl">
